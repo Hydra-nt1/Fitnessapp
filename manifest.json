@@ -1,0 +1,13 @@
+{
+  "name": "FitTracker",
+  "short_name": "FitTracker",
+  "description": "Workout-Tracking & Fortschritt",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0d14",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
