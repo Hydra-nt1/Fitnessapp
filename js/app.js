@@ -2075,51 +2075,91 @@ function drawWeeklyBarChart(canvas, data) {
 
 // ── Wochenplan Page ───────────────────────────────────────────
 
-async function renderWochenplan(el) {
-  const [weekPlanEntries, plans] = await Promise.all([
+let _wochenplanOffset = 0;
+
+async function renderWochenplan(el, offset) {
+  if (offset !== undefined) _wochenplanOffset = offset;
+  const wo = _wochenplanOffset;
+
+  const [weekPlanEntries, plans, allWeekEx, allPlanEx] = await Promise.all([
     dbGetAll('weekPlan'),
-    dbGetAll('plans')
+    dbGetAll('plans'),
+    dbGetAll('weekExercises'),
+    dbGetAll('planExercises')
   ]);
+
+  const thisWeekStart = getWeekStart(wo);
+  const prevWeekStart = getWeekStart(wo + 1);
+
+  // week label
+  const wDate = new Date(thisWeekStart);
+  const wEnd = new Date(thisWeekStart + 6 * 86400000);
+  const fmt = d => d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  const weekLabel = wo === 0 ? 'Diese Woche' : wo === 1 ? 'Letzte Woche' : 'KW ' + fmt(wDate);
+  const weekRange = fmt(wDate) + ' – ' + fmt(wEnd);
 
   const dayPlanMap = {};
   for (const e of weekPlanEntries) {
-    const pid = e.planId != null ? e.planId : (e.planIds && e.planIds[0]) || null;
-    dayPlanMap[e.day] = pid != null ? plans.find(p => p.id === pid) || null : null;
+    dayPlanMap[e.day] = getEntryPlanIds(e);
   }
 
-  let html = '<div class="page-header"><h1 class="page-title">Wochenplan</h1>'
-    + '<button class="btn btn-ghost" onclick="go(\'heute\')">Zurück</button></div>'
-    + '<p style="font-size:14px;color:var(--soft);margin-bottom:20px">Weise jedem Tag eine Vorlage zu. Die App startet dann mit deinen vordefinierten Übungen.</p>'
-    + '<div class="week-plan-grid">';
+  // weekEx map: planExerciseId → thisWeek entry
+  const weMap = {};
+  for (const we of allWeekEx) {
+    if (we.weekStart === thisWeekStart) weMap[we.planExerciseId] = we;
+  }
+  const weMapPrev = {};
+  for (const we of allWeekEx) {
+    if (we.weekStart === prevWeekStart) weMapPrev[we.planExerciseId] = we;
+  }
 
   const todayKey = getTodayKey();
 
+  let html = '<div class="page-header">'
+    + '<h1 class="page-title">Wochenplan</h1>'
+    + '<button class="btn btn-ghost" onclick="showCreatePlanModal()">+ Plan</button>'
+    + '</div>'
+    + '<div class="wp-week-nav">'
+    + '<button class="wp-nav-btn" onclick="renderWochenplan(document.getElementById(\'content-inner\'),' + (wo+1) + ')">‹</button>'
+    + '<div class="wp-week-label"><div class="wp-week-name">' + weekLabel + '</div><div class="wp-week-range">' + weekRange + '</div></div>'
+    + '<button class="wp-nav-btn" onclick="renderWochenplan(document.getElementById(\'content-inner\'),' + (wo-1) + ')" ' + (wo === 0 ? 'disabled' : '') + '>›</button>'
+    + '</div>'
+    + '<div class="wp-days">';
+
   for (const day of DAYS) {
-    const plan = dayPlanMap[day.key] || null;
-    const isToday = day.key === todayKey;
-    html += '<div class="day-plan-card' + (isToday ? ' today' : '') + '" onclick="go(\'tag:' + day.key + '\')">'
-      + '<div class="day-plan-header">'
-      + '<span class="day-plan-short">' + day.short + '</span>'
-      + (isToday ? '<span class="today-pill">Heute</span>' : '')
-      + '</div>'
-      + '<div class="day-plan-body">'
-      + (plan
-        ? '<div class="day-plan-name">' + esc(plan.name) + '</div><div class="day-plan-hint">Tippen zum Ändern</div>'
-        : '<div class="day-rest">Ruhetag</div><div class="day-plan-hint">Tippen zum Belegen</div>'
-      )
-      + '</div>'
+    const planIds = dayPlanMap[day.key] || [];
+    const dayPlans = planIds.map(id => plans.find(p => p.id === id)).filter(Boolean);
+    const isToday = day.key === todayKey && wo === 0;
+
+    html += '<div class="wp-day-block' + (isToday ? ' wp-today' : '') + '">'
+      + '<div class="wp-day-header">'
+      + '<span class="wp-day-label">' + day.label + (isToday ? ' <span class="today-pill">Heute</span>' : '') + '</span>'
+      + '<button class="wp-day-edit btn btn-ghost" style="font-size:12px;padding:2px 8px" onclick="go(\'tag:' + day.key + ':' + wo + '\')">Bearbeiten</button>'
       + '</div>';
+
+    if (dayPlans.length === 0) {
+      html += '<div class="wp-rest">Ruhetag</div>';
+    } else {
+      for (const plan of dayPlans) {
+        const exes = allPlanEx.filter(e => e.planId === plan.id);
+        html += '<div class="wp-plan-name">' + esc(plan.name) + '</div>';
+        if (exes.length > 0) {
+          html += '<div class="wp-ex-list">';
+          for (const ex of exes) {
+            const we = weMap[ex.id] || weMapPrev[ex.id] || ex;
+            html += '<div class="wp-ex-row">'
+              + '<span class="wp-ex-name">' + esc(ex.name) + '</span>'
+              + '<span class="wp-ex-vals">' + we.sets + '×' + we.reps + ' · ' + we.weight + ' kg</span>'
+              + '</div>';
+          }
+          html += '</div>';
+        }
+      }
+    }
+    html += '</div>';
   }
 
   html += '</div>';
-
-  if (plans.length === 0) {
-    html += '<div class="empty-state" style="margin-top:16px">'
-      + '<p style="font-size:14px">Erstelle zuerst eine Vorlage, um sie einem Tag zuzuweisen.</p>'
-      + '<button class="btn btn-primary" style="margin-top:12px" onclick="showCreatePlanModal()">Neue Vorlage</button>'
-      + '</div>';
-  }
-
   el.innerHTML = html;
 }
 
@@ -3174,39 +3214,91 @@ function dismissRest() {
 // ── Verlauf ───────────────────────────────────────────────────
 
 async function renderHistory(el) {
-  const sessions = await dbGetAll('workoutSessions');
-  const completed = sessions
-    .filter(function(s) { return s.completed; })
-    .sort(function(a, b) { return b.startedAt - a.startedAt; });
+  const [allWeekEx, allPlanEx, plans] = await Promise.all([
+    dbGetAll('weekExercises'),
+    dbGetAll('planExercises'),
+    dbGetAll('plans')
+  ]);
 
-  let html = '<div class="page-header"><h1 class="page-title">Verlauf<span class="count-badge">' + completed.length + '</span></h1></div>';
+  let html = '<div class="page-header"><h1 class="page-title">Fortschritt</h1></div>';
 
-  if (completed.length === 0) {
-    html += '<div class="empty-state">' + iconHistory()
-      + '<h3>Noch keine Workouts</h3><p>Deine abgeschlossenen Workouts erscheinen hier.</p></div>';
+  if (allWeekEx.length === 0) {
+    html += '<div class="empty-state">'
+      + '<h3>Noch keine Daten</h3>'
+      + '<p>Trage Gewichte und Wiederholungen in deinen Tagen ein — hier siehst du dann deinen Fortschritt pro Übung.</p>'
+      + '</div>';
     el.innerHTML = html;
     return;
   }
 
-  const groups = groupByWeek(completed);
-  for (const entry of groups) {
-    const label = entry[0];
-    const items = entry[1];
-    html += '<div class="week-group-label">' + label + '</div>';
-    html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px">';
-    for (const s of items) {
-      const sets = await dbGetAll('workoutSets', 'sessionId', s.id);
-      const seen = {};
-      const exNames = [];
-      for (const ws of sets) { if (!seen[ws.exerciseName]) { seen[ws.exerciseName] = true; exNames.push(ws.exerciseName); } }
-      html += '<div class="session-row" onclick="showSessionDetail(' + s.id + ')">'
-        + '<div class="session-dot"></div>'
-        + '<div class="session-info">'
-        + '<div class="session-name">' + esc(s.planName || 'Workout') + '</div>'
-        + '<div class="session-meta">' + formatDate(s.startedAt) + ' · ' + formatDuration(s.duration) + ' · ' + exNames.length + ' Übungen</div>'
+  // group weekExercises by planExerciseId
+  const byEx = {};
+  for (const we of allWeekEx) {
+    if (!byEx[we.planExerciseId]) byEx[we.planExerciseId] = [];
+    byEx[we.planExerciseId].push(we);
+  }
+
+  // planEx lookup
+  const exMap = {};
+  for (const ex of allPlanEx) exMap[ex.id] = ex;
+
+  // plan lookup
+  const planMap = {};
+  for (const p of plans) planMap[p.id] = p;
+
+  // group exercises by plan
+  const byPlan = {};
+  for (const [exId, entries] of Object.entries(byEx)) {
+    if (entries.length < 1) continue;
+    const ex = exMap[exId];
+    if (!ex) continue;
+    const planId = ex.planId;
+    if (!byPlan[planId]) byPlan[planId] = [];
+    byPlan[planId].push({ ex, entries: entries.sort((a,b) => a.weekStart - b.weekStart) });
+  }
+
+  for (const [planId, exList] of Object.entries(byPlan)) {
+    const plan = planMap[planId];
+    html += '<div class="hist-plan-block">'
+      + '<div class="hist-plan-name">' + esc(plan ? plan.name : 'Unbekannt') + '</div>';
+
+    for (const { ex, entries } of exList) {
+      if (entries.length === 0) continue;
+      const first = entries[0];
+      const last = entries[entries.length - 1];
+      const deltaW = last.weight - first.weight;
+      const deltaR = last.reps - first.reps;
+      const weeks = entries.length;
+
+      html += '<div class="hist-ex-card">'
+        + '<div class="hist-ex-header">'
+        + '<span class="hist-ex-name">' + esc(ex.name) + '</span>'
+        + '<span class="hist-ex-weeks">' + weeks + ' Wo.</span>'
         + '</div>'
-        + '<span style="color:var(--muted)">' + iconArrow() + '</span></div>';
+        + '<div class="hist-ex-stats">'
+        + '<div class="hist-stat"><div class="hist-stat-val">' + last.weight + ' kg</div><div class="hist-stat-lbl">Aktuell</div></div>'
+        + '<div class="hist-stat"><div class="hist-stat-val hist-delta ' + (deltaW > 0 ? 'pos' : deltaW < 0 ? 'neg' : '') + '">'
+        + (deltaW > 0 ? '+' : '') + deltaW + ' kg</div><div class="hist-stat-lbl">Gewicht</div></div>'
+        + '<div class="hist-stat"><div class="hist-stat-val hist-delta ' + (deltaR > 0 ? 'pos' : deltaR < 0 ? 'neg' : '') + '">'
+        + (deltaR > 0 ? '+' : '') + deltaR + ' Wdh</div><div class="hist-stat-lbl">Wdh.</div></div>'
+        + '</div>';
+
+      // mini bar chart for weight over weeks
+      if (entries.length > 1) {
+        const maxW = Math.max(...entries.map(e => e.weight));
+        const minW = Math.min(...entries.map(e => e.weight));
+        const range = maxW - minW || 1;
+        html += '<div class="hist-chart">';
+        for (const e of entries) {
+          const h = Math.round(20 + ((e.weight - minW) / range) * 30);
+          html += '<div class="hist-bar" style="height:' + h + 'px" title="' + e.weight + ' kg"></div>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
     }
+
     html += '</div>';
   }
 
