@@ -3,7 +3,10 @@
 (function() {
   var PIN_KEY = 'fittracker_pin';
   var MODE_KEY = 'fittracker_pin_mode';
+  var INVITE_KEY = 'fittracker_invited';
+  var INVITE_CODE = 'FIT2026';
   var entered = '';
+  var inviteEntered = '';
 
   function updateDots() {
     for (var i = 0; i < 4; i++) {
@@ -30,12 +33,45 @@
     }
   }
 
+  function showInviteScreen() {
+    document.getElementById('pin-dots').style.display = 'none';
+    document.getElementById('pin-pad').style.display = 'none';
+    document.getElementById('pin-title').textContent = 'Einladungscode eingeben';
+    var box = document.getElementById('pin-box');
+    var invDiv = document.createElement('div');
+    invDiv.id = 'invite-wrap';
+    invDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;width:100%';
+    invDiv.innerHTML =
+      '<input id="invite-input" type="text" placeholder="Code" autocomplete="off" ' +
+      'style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;' +
+      'color:var(--text);font-size:16px;font-family:Inter,sans-serif;padding:12px 16px;' +
+      'width:100%;text-align:center;letter-spacing:2px;outline:none;" />' +
+      '<button onclick="submitInvite()" ' +
+      'style="background:var(--blue);color:#fff;border:none;border-radius:10px;' +
+      'padding:12px 32px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;width:100%">' +
+      'Bestätigen</button>';
+    box.appendChild(invDiv);
+  }
+
+  window.submitInvite = function() {
+    var val = (document.getElementById('invite-input').value || '').trim().toUpperCase();
+    if (val === INVITE_CODE) {
+      localStorage.setItem(INVITE_KEY, '1');
+      document.getElementById('invite-wrap').remove();
+      document.getElementById('pin-dots').style.display = '';
+      document.getElementById('pin-pad').style.display = '';
+      setTitle('PIN wählen');
+      setError('');
+    } else {
+      setError('Ungültiger Code');
+    }
+  };
+
   function handlePin() {
     var stored = localStorage.getItem(PIN_KEY);
     var mode = localStorage.getItem(MODE_KEY);
 
     if (!stored) {
-      // Ersten PIN setzen
       if (mode === 'confirm') {
         if (entered === localStorage.getItem(PIN_KEY + '_tmp')) {
           localStorage.setItem(PIN_KEY, entered);
@@ -84,8 +120,13 @@
 
   // Init
   var stored = localStorage.getItem(PIN_KEY);
+  var invited = localStorage.getItem(INVITE_KEY);
   if (!stored) {
-    document.getElementById('pin-title').textContent = 'PIN wählen';
+    if (!invited) {
+      showInviteScreen();
+    } else {
+      setTitle('PIN wählen');
+    }
   }
 })();
 
