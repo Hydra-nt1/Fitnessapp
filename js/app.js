@@ -3789,10 +3789,30 @@ async function getLastSetsForExercise(name) {
 
 // ── Profil Page ───────────────────────────────────────────────
 
+function getProfileData() {
+  try { return JSON.parse(localStorage.getItem('fittracker_profile') || '{}'); } catch(e) { return {}; }
+}
+function saveProfileField(key, value) {
+  var p = getProfileData();
+  p[key] = value;
+  localStorage.setItem('fittracker_profile', JSON.stringify(p));
+}
+function calcBMI(weight, height) {
+  if (!weight || !height) return null;
+  return (weight / ((height/100) * (height/100))).toFixed(1);
+}
+function bmiLabel(bmi) {
+  if (bmi < 18.5) return { text: 'Untergewicht', color: '#f87171' };
+  if (bmi < 25)   return { text: 'Normalgewicht', color: '#4ade80' };
+  if (bmi < 30)   return { text: 'Übergewicht',   color: '#facc15' };
+  return                  { text: 'Adipositas',    color: '#f87171' };
+}
+
 async function renderProfile(el) {
   const [sessions, stats] = await Promise.all([dbGetAll('workoutSessions'), dbGetAll('bodyStats')]);
   const completed = sessions.filter(function(s) { return s.completed; });
   const statsSort = stats.slice().sort(function(a, b) { return b.date - a.date; });
+  const profile = getProfileData();
 
   const now = new Date();
   const dow = now.getDay();
@@ -3803,13 +3823,61 @@ async function renderProfile(el) {
   const thisWeek = completed.filter(function(s) { return s.startedAt >= weekStart.getTime(); }).length;
   const streak = calcStreak(completed);
 
-  let html = '<div class="page-header"><h1 class="page-title">Profil</h1></div>'
+  // BMI
+  const latestWeight = statsSort.length > 0 ? statsSort[0].weight : (profile.weight || null);
+  const bmi = calcBMI(latestWeight, profile.height);
+  const bmiInfo = bmi ? bmiLabel(parseFloat(bmi)) : null;
+
+  // age from birthday
+  var age = '';
+  if (profile.birthday) {
+    var bd = new Date(profile.birthday);
+    var ageDiff = Date.now() - bd.getTime();
+    age = Math.floor(ageDiff / (365.25 * 24 * 3600 * 1000));
+  }
+
+  let html = '<div class="page-header"><h1 class="page-title">Profil</h1></div>';
+
+  // ── Avatar + Name ──
+  html += '<div class="profil-hero">'
+    + '<div class="profil-avatar">' + (profile.name ? profile.name.charAt(0).toUpperCase() : '?') + '</div>'
+    + '<div class="profil-hero-info">'
+    + '<div class="profil-name">' + esc(profile.name || 'Dein Name') + '</div>'
+    + '<div class="profil-meta">'
+    + (age ? age + ' Jahre' : '') + (age && profile.height ? ' · ' : '') + (profile.height ? profile.height + ' cm' : '')
+    + '</div>'
+    + (bmi ? '<div class="profil-bmi" style="color:' + bmiInfo.color + '">BMI ' + bmi + ' · ' + bmiInfo.text + '</div>' : '')
+    + '</div>'
+    + '</div>';
+
+  // ── Persönliche Daten ──
+  html += '<div class="section-title">Persönliche Daten</div>'
+    + '<div class="card profil-form">'
+    + profilField('Name', 'text', 'name', profile.name || '', 'Dein Name')
+    + profilField('Geburtstag', 'date', 'birthday', profile.birthday || '', '')
+    + profilField('Größe (cm)', 'number', 'height', profile.height || '', '175')
+    + profilField('Zielgewicht (kg)', 'number', 'goalWeight', profile.goalWeight || '', '75')
+    + '</div>';
+
+  // ── Ziel & Erfahrung ──
+  html += '<div class="section-title">Training</div>'
+    + '<div class="card profil-form">'
+    + profilSelect('Ziel', 'goal', profile.goal || '', ['', 'Muskelaufbau', 'Gewicht verlieren', 'Kraft aufbauen', 'Fitness verbessern', 'Abnehmen & Muskelaufbau'])
+    + profilSelect('Erfahrungslevel', 'level', profile.level || '', ['', 'Anfänger', 'Fortgeschritten', 'Profi'])
+    + profilSelect('Trainingstage / Woche', 'daysPerWeek', profile.daysPerWeek || '', ['', '2', '3', '4', '5', '6'])
+    + profilSelect('Equipment', 'equipment', profile.equipment || '', ['', 'Fitnessstudio', 'Heimtraining', 'Outdoor', 'Beides'])
+    + '</div>';
+
+  // ── Trainingsstatistiken ──
+  html += '<div class="section-title">Übersicht</div>'
     + '<div class="stats-row">'
-    + '<div class="stat-card"><div class="stat-value">' + completed.length + '</div><div class="stat-label">Gesamt</div></div>'
+    + '<div class="stat-card"><div class="stat-value">' + completed.length + '</div><div class="stat-label">Workouts</div></div>'
     + '<div class="stat-card"><div class="stat-value">' + thisWeek + '</div><div class="stat-label">Diese Woche</div></div>'
     + '<div class="stat-card"><div class="stat-value">' + streak + '</div><div class="stat-label">Streak (W)</div></div>'
-    + '</div>'
-    + '<div class="section-title">Körpergewicht</div>'
+    + '</div>';
+
+  // ── Körpergewicht ──
+  html += '<div class="section-title">Körpergewicht</div>'
     + '<div class="card" style="margin-bottom:16px">'
     + '<button class="btn btn-ghost" style="width:100%' + (statsSort.length > 0 ? ';margin-bottom:14px' : '') + '" onclick="showAddWeightModal()">'
     + iconPlus() + ' Gewicht eintragen</button>';
@@ -3831,8 +3899,15 @@ async function renderProfile(el) {
   }
   html += '</div>';
 
-  html += '<div class="section-title" style="margin-top:28px">Datensicherung</div>'
-    + '<div class="card" style="margin-bottom:16px;display:flex;flex-direction:column;gap:10px">'
+  // ── PIN ändern ──
+  html += '<div class="section-title">Sicherheit</div>'
+    + '<div class="card" style="margin-bottom:16px">'
+    + '<button class="btn btn-ghost" style="width:100%" onclick="resetPin()">PIN zurücksetzen</button>'
+    + '</div>';
+
+  // ── Datensicherung ──
+  html += '<div class="section-title">Datensicherung</div>'
+    + '<div class="card" style="margin-bottom:32px;display:flex;flex-direction:column;gap:10px">'
     + '<button class="btn btn-ghost" style="width:100%" onclick="exportData()">'
     + '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-3px"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>'
     + 'Daten exportieren (JSON)</button>'
@@ -3845,11 +3920,44 @@ async function renderProfile(el) {
 
   el.innerHTML = html;
 
+  // attach save listeners
+  el.querySelectorAll('.profil-input, .profil-select').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      saveProfileField(inp.dataset.key, inp.value);
+      renderProfile(el);
+    });
+  });
+
   if (statsSort.length > 1) {
     const canvas = el.querySelector('#weight-chart');
     const data = statsSort.slice().reverse().map(function(e) { return { x: e.date, y: e.weight }; });
     drawLineChart(canvas, data, '#30d158');
   }
+}
+
+function profilField(label, type, key, value, placeholder) {
+  return '<div class="profil-row">'
+    + '<label class="profil-label">' + label + '</label>'
+    + '<input class="profil-input input" type="' + type + '" data-key="' + key + '" value="' + esc(String(value)) + '" placeholder="' + placeholder + '">'
+    + '</div>';
+}
+
+function profilSelect(label, key, value, options) {
+  var opts = options.map(function(o) {
+    return '<option value="' + o + '"' + (o === value ? ' selected' : '') + '>' + (o || '— wählen —') + '</option>';
+  }).join('');
+  return '<div class="profil-row">'
+    + '<label class="profil-label">' + label + '</label>'
+    + '<select class="profil-select input" data-key="' + key + '">' + opts + '</select>'
+    + '</div>';
+}
+
+function resetPin() {
+  if (!confirm('PIN wirklich zurücksetzen? Du musst danach einen neuen einrichten.')) return;
+  localStorage.removeItem('fittracker_pin');
+  localStorage.removeItem('fittracker_pin_mode');
+  localStorage.removeItem('fittracker_pin_tmp');
+  location.reload();
 }
 
 function calcStreak(completed) {
