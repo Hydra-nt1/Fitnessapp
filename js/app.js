@@ -3920,14 +3920,6 @@ async function renderProfile(el) {
 
   el.innerHTML = html;
 
-  // attach save listeners
-  el.querySelectorAll('.profil-input, .profil-select').forEach(function(inp) {
-    inp.addEventListener('change', function() {
-      saveProfileField(inp.dataset.key, inp.value);
-      renderProfile(el);
-    });
-  });
-
   if (statsSort.length > 1) {
     const canvas = el.querySelector('#weight-chart');
     const data = statsSort.slice().reverse().map(function(e) { return { x: e.date, y: e.weight }; });
@@ -3937,11 +3929,94 @@ async function renderProfile(el) {
 
 function profilField(label, type, key, value, placeholder, icon, iconBg) {
   var iconHtml = icon ? '<span class="profil-label-icon ' + (iconBg||'icon-bg-blue') + '">' + icon + '</span>' : '';
-  return '<div class="profil-row">'
-    + '<label class="profil-label">' + iconHtml + label + '</label>'
-    + '<input class="profil-input" type="' + type + '" data-key="' + key + '" value="' + esc(String(value)) + '" placeholder="' + placeholder + '">'
+  var display = value ? esc(String(value)) : '';
+  if (type === 'date' && value) {
+    var parts = value.split('-');
+    if (parts.length === 3) display = parts[2] + '.' + parts[1] + '.' + parts[0];
+  }
+  return '<div class="profil-row profil-row-select" onclick="showProfilFieldSheet(\'' + key + '\',\'' + label + '\',\'' + type + '\',\'' + esc(String(value || '')) + '\',\'' + placeholder + '\')">'
+    + '<span class="profil-label">' + iconHtml + label + '</span>'
+    + '<span class="profil-select-val' + (display ? '' : ' muted') + '">' + (display || placeholder || '— eingeben —')
+    + ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><polyline points="6 9 12 15 18 9"/></svg>'
+    + '</span>'
     + '</div>';
 }
+
+function showProfilFieldSheet(key, label, type, value, placeholder) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;padding:0';
+
+  var bodyHtml = '';
+  if (type === 'date') {
+    var parts = value ? value.split('-') : ['', '', ''];
+    var y = parts[0] || '', m = parts[1] || '', d = parts[2] || '';
+    bodyHtml = '<div class="pfs-date-grid">'
+      + '<div class="pfs-col"><div class="pfs-col-label">Tag</div><input class="pfs-input" id="pfs-d" type="number" min="1" max="31" placeholder="TT" value="' + d + '"></div>'
+      + '<div class="pfs-col"><div class="pfs-col-label">Monat</div><input class="pfs-input" id="pfs-m" type="number" min="1" max="12" placeholder="MM" value="' + m + '"></div>'
+      + '<div class="pfs-col"><div class="pfs-col-label">Jahr</div><input class="pfs-input pfs-input-wide" id="pfs-y" type="number" min="1900" max="2099" placeholder="JJJJ" value="' + y + '"></div>'
+      + '</div>';
+  } else if (type === 'number') {
+    var num = parseFloat(value) || 0;
+    var step = (key === 'height' || key === 'goalWeight') ? 0.5 : 1;
+    var unit = key === 'height' ? 'cm' : key === 'goalWeight' ? 'kg' : '';
+    bodyHtml = '<div class="pfs-number-wrap">'
+      + '<button class="pfs-stepper" onclick="pfsStep(-' + step + ',' + step + ')">−</button>'
+      + '<div class="pfs-number-display"><span id="pfs-num-val">' + (num || placeholder) + '</span><span class="pfs-unit">' + unit + '</span></div>'
+      + '<button class="pfs-stepper" onclick="pfsStep(' + step + ',' + step + ')">+</button>'
+      + '</div>'
+      + '<input type="hidden" id="pfs-num-hidden" value="' + (num||'') + '">';
+  } else {
+    bodyHtml = '<input class="pfs-text-input" id="pfs-text" type="text" placeholder="' + esc(placeholder||label) + '" value="' + esc(value) + '" autofocus>';
+  }
+
+  var sheet = document.createElement('div');
+  sheet.className = 'profil-sheet';
+  sheet.innerHTML = '<div class="profil-sheet-handle"></div>'
+    + '<div class="profil-sheet-title">' + esc(label) + '</div>'
+    + '<div class="pfs-body">' + bodyHtml + '</div>'
+    + '<div class="pfs-actions">'
+    + '<button class="pfs-btn-cancel" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
+    + '<button class="pfs-btn-save" onclick="saveProfilField(\'' + key + '\',\'' + type + '\')">Speichern</button>'
+    + '</div>';
+
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  // auto-focus text
+  setTimeout(function() {
+    var inp = sheet.querySelector('#pfs-text');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+window.pfsStep = function(delta, step) {
+  var hidden = document.getElementById('pfs-num-hidden');
+  var display = document.getElementById('pfs-num-val');
+  var current = parseFloat(hidden.value) || 0;
+  var next = Math.round((current + delta) * 100) / 100;
+  if (next < 0) next = 0;
+  hidden.value = next;
+  display.textContent = next;
+};
+
+window.saveProfilField = function(key, type) {
+  var val = '';
+  if (type === 'date') {
+    var d = (document.getElementById('pfs-d').value || '').padStart(2,'0');
+    var m = (document.getElementById('pfs-m').value || '').padStart(2,'0');
+    var y = document.getElementById('pfs-y').value || '';
+    if (y && m && d) val = y + '-' + m + '-' + d;
+  } else if (type === 'number') {
+    val = document.getElementById('pfs-num-hidden').value;
+  } else {
+    val = document.getElementById('pfs-text').value.trim();
+  }
+  saveProfileField(key, val);
+  document.querySelector('.modal-overlay').remove();
+  renderProfile(document.getElementById('content-inner'));
+};
 
 function profilSelect(label, key, value, options, icon, iconBg) {
   var iconHtml = icon ? '<span class="profil-label-icon ' + (iconBg||'icon-bg-blue') + '">' + icon + '</span>' : '';

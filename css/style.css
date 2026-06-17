@@ -2364,3 +2364,127 @@ canvas.chart { display: block; width: 100%; }
   font-family: 'Inter', sans-serif;
   cursor: pointer;
 }
+
+/* ── Profil Field Sheet ── */
+
+.pfs-body {
+  padding: 20px 20px 8px;
+}
+
+/* Date */
+.pfs-date-grid {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.pfs-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.pfs-col-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--soft);
+}
+.pfs-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  padding: 14px 8px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.pfs-input::-webkit-outer-spin-button,
+.pfs-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.pfs-input:focus { border-color: var(--blue); }
+.pfs-input-wide { font-size: 22px; }
+
+/* Number stepper */
+.pfs-number-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.pfs-stepper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  color: var(--text);
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.pfs-stepper:active { background: var(--surface3); }
+.pfs-number-display {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 100px;
+  justify-content: center;
+}
+#pfs-num-val {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--text);
+  line-height: 1;
+}
+.pfs-unit {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--soft);
+}
+
+/* Text input */
+.pfs-text-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  padding: 14px 16px;
+  outline: none;
+}
+.pfs-text-input:focus { border-color: var(--blue); }
+.pfs-text-input::placeholder { color: var(--muted); font-weight: 400; }
+
+/* Actions */
+.pfs-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px 8px;
+}
+.pfs-btn-cancel, .pfs-btn-save {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: none;
+}
+.pfs-btn-cancel { background: var(--surface2); color: var(--soft); }
+.pfs-btn-save { background: var(--blue); color: #fff; }
