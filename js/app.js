@@ -3945,13 +3945,44 @@ function profilField(label, type, key, value, placeholder, icon, iconBg) {
 
 function profilSelect(label, key, value, options, icon, iconBg) {
   var iconHtml = icon ? '<span class="profil-label-icon ' + (iconBg||'icon-bg-blue') + '">' + icon + '</span>' : '';
-  var opts = options.map(function(o) {
-    return '<option value="' + o + '"' + (o === value ? ' selected' : '') + '>' + (o || '— wählen —') + '</option>';
-  }).join('');
-  return '<div class="profil-row">'
-    + '<label class="profil-label">' + iconHtml + label + '</label>'
-    + '<select class="profil-select" data-key="' + key + '">' + opts + '</select>'
+  var displayVal = value || '';
+  var displayText = displayVal || '— wählen —';
+  var optsJson = JSON.stringify(options).replace(/'/g, '&#39;');
+  return '<div class="profil-row profil-row-select" onclick="showProfilSelectSheet(\'' + key + '\',\'' + label + '\',' + optsJson.replace(/"/g, '&quot;') + ')">'
+    + '<span class="profil-label">' + iconHtml + label + '</span>'
+    + '<span class="profil-select-val' + (displayVal ? '' : ' muted') + '">' + esc(displayText)
+    + ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><polyline points="6 9 12 15 18 9"/></svg>'
+    + '</span>'
     + '</div>';
+}
+
+function showProfilSelectSheet(key, label, options) {
+  var current = getProfileData()[key] || '';
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;padding:0';
+  var sheet = document.createElement('div');
+  sheet.className = 'profil-sheet';
+  sheet.innerHTML = '<div class="profil-sheet-handle"></div>'
+    + '<div class="profil-sheet-title">' + esc(label) + '</div>'
+    + '<div class="profil-sheet-options">'
+    + options.filter(function(o) { return o !== ''; }).map(function(o) {
+        return '<button class="profil-sheet-opt' + (o === current ? ' selected' : '') + '" onclick="pickProfilOption(\'' + key + '\',\'' + o.replace(/'/g,"&#39;") + '\')">'
+          + '<span>' + esc(o) + '</span>'
+          + (o === current ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '')
+          + '</button>';
+      }).join('')
+    + '</div>'
+    + '<button class="profil-sheet-cancel" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>';
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function pickProfilOption(key, value) {
+  saveProfileField(key, value);
+  document.querySelector('.modal-overlay').remove();
+  renderProfile(document.getElementById('content-inner'));
 }
 
 function resetPin() {

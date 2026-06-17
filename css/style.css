@@ -2281,3 +2281,86 @@ canvas.chart { display: block; width: 100%; }
 .icon-bg-red    { background: rgba(255,69,58,0.15); }
 .icon-bg-purple { background: rgba(123,95,255,0.15); }
 .icon-bg-teal   { background: rgba(90,200,250,0.15); }
+
+/* ── Profil Select Sheet ── */
+
+.profil-row-select { cursor: pointer; }
+.profil-select-val {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 600;
+}
+.profil-select-val.muted { color: var(--muted); font-weight: 400; }
+
+.profil-sheet {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 540px;
+  padding: 12px 0 32px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.profil-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border2);
+  margin: 0 auto 16px;
+}
+.profil-sheet-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--soft);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding: 0 20px;
+}
+.profil-sheet-options {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.profil-sheet-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.profil-sheet-opt:last-child { border-bottom: none; }
+.profil-sheet-opt:hover { background: var(--surface2); }
+.profil-sheet-opt.selected { color: var(--blue); font-weight: 600; }
+.profil-sheet-opt.selected svg { color: var(--blue); }
+.profil-sheet-cancel {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 8px 16px 0;
+  padding: 14px;
+  background: var(--surface2);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--soft);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+}
