@@ -3211,7 +3211,66 @@ function dismissRest() {
   if (sheet) sheet.classList.remove('open');
 }
 
-// ── Verlauf ───────────────────────────────────────────────────
+// ── Statistik ─────────────────────────────────────────────────
+
+function makeSvgLineChart(entries, valueKey, color) {
+  const W = 300, H = 80, pad = 8;
+  const vals = entries.map(e => e[valueKey]);
+  const maxV = Math.max(...vals);
+  const minV = Math.min(...vals);
+  const range = maxV - minV || 1;
+  const n = vals.length;
+  const xs = vals.map((_, i) => pad + (i / (n - 1 || 1)) * (W - pad * 2));
+  const ys = vals.map(v => H - pad - ((v - minV) / range) * (H - pad * 2));
+
+  // area fill path
+  let area = 'M' + xs[0] + ',' + H;
+  for (let i = 0; i < n; i++) area += ' L' + xs[i] + ',' + ys[i];
+  area += ' L' + xs[n-1] + ',' + H + ' Z';
+
+  // line path
+  let line = 'M' + xs[0] + ',' + ys[0];
+  for (let i = 1; i < n; i++) {
+    const cx = (xs[i-1] + xs[i]) / 2;
+    line += ' C' + cx + ',' + ys[i-1] + ' ' + cx + ',' + ys[i] + ' ' + xs[i] + ',' + ys[i];
+  }
+
+  // dots + labels
+  let dots = '';
+  for (let i = 0; i < n; i++) {
+    dots += '<circle cx="' + xs[i] + '" cy="' + ys[i] + '" r="3" fill="' + color + '"/>';
+    const anchor = i === 0 ? 'start' : i === n-1 ? 'end' : 'middle';
+    dots += '<text x="' + xs[i] + '" y="' + (ys[i] - 6) + '" text-anchor="' + anchor + '" font-size="9" fill="#8e8e9a">' + vals[i] + '</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:80px">'
+    + '<defs><linearGradient id="g' + color.replace('#','') + '" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.25"/>'
+    + '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>'
+    + '</linearGradient></defs>'
+    + '<path d="' + area + '" fill="url(#g' + color.replace('#','') + ')"/>'
+    + '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round"/>'
+    + dots
+    + '</svg>';
+}
+
+function makeSvgBarChart(labels, values, color) {
+  const W = 300, H = 80, pad = 8;
+  const n = values.length;
+  const maxV = Math.max(...values, 1);
+  const barW = (W - pad * 2) / n - 4;
+
+  let bars = '', texts = '';
+  for (let i = 0; i < n; i++) {
+    const x = pad + i * ((W - pad * 2) / n);
+    const barH = Math.max(4, ((values[i] / maxV) * (H - pad * 2 - 14)));
+    const y = H - pad - barH;
+    bars += '<rect x="' + (x+1) + '" y="' + y + '" width="' + barW + '" height="' + barH + '" rx="3" fill="' + color + '" opacity="0.8"/>';
+    if (values[i] > 0) texts += '<text x="' + (x + barW/2 + 1) + '" y="' + (y - 3) + '" text-anchor="middle" font-size="8" fill="#8e8e9a">' + values[i] + '</text>';
+    texts += '<text x="' + (x + barW/2 + 1) + '" y="' + (H - 1) + '" text-anchor="middle" font-size="8" fill="#48484f">' + labels[i] + '</text>';
+  }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:80px">' + bars + texts + '</svg>';
+}
 
 async function renderHistory(el) {
   const [allWeekEx, allPlanEx, plans] = await Promise.all([
@@ -3220,86 +3279,104 @@ async function renderHistory(el) {
     dbGetAll('plans')
   ]);
 
-  let html = '<div class="page-header"><h1 class="page-title">Fortschritt</h1></div>';
+  let html = '<div class="page-header"><h1 class="page-title">Statistik</h1></div>';
 
   if (allWeekEx.length === 0) {
     html += '<div class="empty-state">'
       + '<h3>Noch keine Daten</h3>'
-      + '<p>Trage Gewichte und Wiederholungen in deinen Tagen ein — hier siehst du dann deinen Fortschritt pro Übung.</p>'
+      + '<p>Trage Gewichte und Wiederholungen in deinen Tagen ein — hier siehst du dann deine Statistiken.</p>'
       + '</div>';
     el.innerHTML = html;
     return;
   }
 
-  // group weekExercises by planExerciseId
+  const exMap = {};
+  for (const ex of allPlanEx) exMap[ex.id] = ex;
+  const planMap = {};
+  for (const p of plans) planMap[p.id] = p;
+
+  // ── Wöchentliches Volumen (Sätze gesamt) ──
+  const volByWeek = {};
+  for (const we of allWeekEx) {
+    const key = we.weekStart;
+    if (!volByWeek[key]) volByWeek[key] = 0;
+    volByWeek[key] += (we.sets || 0);
+  }
+  const volWeeks = Object.keys(volByWeek).sort().slice(-8);
+  if (volWeeks.length > 1) {
+    const volLabels = volWeeks.map(w => {
+      const d = new Date(parseInt(w));
+      return 'KW' + Math.ceil((d - new Date(d.getFullYear(),0,1)) / 604800000);
+    });
+    const volVals = volWeeks.map(w => volByWeek[w]);
+    html += '<div class="stat-card">'
+      + '<div class="stat-card-title">Wöchentliches Volumen <span class="stat-subtitle">(Sätze gesamt)</span></div>'
+      + makeSvgBarChart(volLabels, volVals, '#4f7dff')
+      + '</div>';
+  }
+
+  // ── Trainingstage pro Woche ──
+  const activeDaysByWeek = {};
+  for (const we of allWeekEx) {
+    const ex = exMap[we.planExerciseId];
+    if (!ex) continue;
+    if (!activeDaysByWeek[we.weekStart]) activeDaysByWeek[we.weekStart] = new Set();
+    activeDaysByWeek[we.weekStart].add(ex.planId);
+  }
+  const actWeeks = Object.keys(activeDaysByWeek).sort().slice(-8);
+  if (actWeeks.length > 1) {
+    const actLabels = actWeeks.map(w => {
+      const d = new Date(parseInt(w));
+      return 'KW' + Math.ceil((d - new Date(d.getFullYear(),0,1)) / 604800000);
+    });
+    const actVals = actWeeks.map(w => activeDaysByWeek[w].size);
+    html += '<div class="stat-card">'
+      + '<div class="stat-card-title">Aktive Trainingstage <span class="stat-subtitle">(pro Woche)</span></div>'
+      + makeSvgBarChart(actLabels, actVals, '#30d158')
+      + '</div>';
+  }
+
+  // ── Fortschritt pro Übung (Gewicht) ──
   const byEx = {};
   for (const we of allWeekEx) {
     if (!byEx[we.planExerciseId]) byEx[we.planExerciseId] = [];
     byEx[we.planExerciseId].push(we);
   }
 
-  // planEx lookup
-  const exMap = {};
-  for (const ex of allPlanEx) exMap[ex.id] = ex;
-
-  // plan lookup
-  const planMap = {};
-  for (const p of plans) planMap[p.id] = p;
-
-  // group exercises by plan
   const byPlan = {};
   for (const [exId, entries] of Object.entries(byEx)) {
-    if (entries.length < 1) continue;
+    if (entries.length < 2) continue;
     const ex = exMap[exId];
     if (!ex) continue;
-    const planId = ex.planId;
-    if (!byPlan[planId]) byPlan[planId] = [];
-    byPlan[planId].push({ ex, entries: entries.sort((a,b) => a.weekStart - b.weekStart) });
+    if (!byPlan[ex.planId]) byPlan[ex.planId] = [];
+    byPlan[ex.planId].push({ ex, entries: entries.sort((a,b) => a.weekStart - b.weekStart) });
   }
 
   for (const [planId, exList] of Object.entries(byPlan)) {
     const plan = planMap[planId];
-    html += '<div class="hist-plan-block">'
-      + '<div class="hist-plan-name">' + esc(plan ? plan.name : 'Unbekannt') + '</div>';
+    html += '<div class="stat-section-title">' + esc(plan ? plan.name : 'Unbekannt') + '</div>';
 
     for (const { ex, entries } of exList) {
-      if (entries.length === 0) continue;
       const first = entries[0];
       const last = entries[entries.length - 1];
-      const deltaW = last.weight - first.weight;
+      const deltaW = +(last.weight - first.weight).toFixed(1);
       const deltaR = last.reps - first.reps;
-      const weeks = entries.length;
 
-      html += '<div class="hist-ex-card">'
-        + '<div class="hist-ex-header">'
-        + '<span class="hist-ex-name">' + esc(ex.name) + '</span>'
-        + '<span class="hist-ex-weeks">' + weeks + ' Wo.</span>'
+      html += '<div class="stat-card">'
+        + '<div class="stat-card-title">' + esc(ex.name) + '</div>'
+        + '<div class="stat-chips">'
+        + '<span class="stat-chip">' + last.weight + ' kg aktuell</span>'
+        + '<span class="stat-chip ' + (deltaW > 0 ? 'pos' : deltaW < 0 ? 'neg' : '') + '">'
+        + (deltaW > 0 ? '▲ +' : deltaW < 0 ? '▼ ' : '') + deltaW + ' kg</span>'
+        + '<span class="stat-chip ' + (deltaR > 0 ? 'pos' : deltaR < 0 ? 'neg' : '') + '">'
+        + (deltaR > 0 ? '▲ +' : deltaR < 0 ? '▼ ' : '') + deltaR + ' Wdh</span>'
         + '</div>'
-        + '<div class="hist-ex-stats">'
-        + '<div class="hist-stat"><div class="hist-stat-val">' + last.weight + ' kg</div><div class="hist-stat-lbl">Aktuell</div></div>'
-        + '<div class="hist-stat"><div class="hist-stat-val hist-delta ' + (deltaW > 0 ? 'pos' : deltaW < 0 ? 'neg' : '') + '">'
-        + (deltaW > 0 ? '+' : '') + deltaW + ' kg</div><div class="hist-stat-lbl">Gewicht</div></div>'
-        + '<div class="hist-stat"><div class="hist-stat-val hist-delta ' + (deltaR > 0 ? 'pos' : deltaR < 0 ? 'neg' : '') + '">'
-        + (deltaR > 0 ? '+' : '') + deltaR + ' Wdh</div><div class="hist-stat-lbl">Wdh.</div></div>'
+        + '<div class="stat-chart-label">Gewicht (kg)</div>'
+        + makeSvgLineChart(entries, 'weight', '#4f7dff')
+        + '<div class="stat-chart-label" style="margin-top:8px">Wiederholungen</div>'
+        + makeSvgLineChart(entries, 'reps', '#30d158')
         + '</div>';
-
-      // mini bar chart for weight over weeks
-      if (entries.length > 1) {
-        const maxW = Math.max(...entries.map(e => e.weight));
-        const minW = Math.min(...entries.map(e => e.weight));
-        const range = maxW - minW || 1;
-        html += '<div class="hist-chart">';
-        for (const e of entries) {
-          const h = Math.round(20 + ((e.weight - minW) / range) * 30);
-          html += '<div class="hist-bar" style="height:' + h + 'px" title="' + e.weight + ' kg"></div>';
-        }
-        html += '</div>';
-      }
-
-      html += '</div>';
     }
-
-    html += '</div>';
   }
 
   el.innerHTML = html;

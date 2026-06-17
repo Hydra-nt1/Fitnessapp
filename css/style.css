@@ -2115,3 +2115,51 @@ canvas.chart { display: block; width: 100%; }
   transition: opacity 0.2s;
 }
 .hist-bar:hover { opacity: 1; }
+
+/* ── Statistik ── */
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.stat-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.stat-subtitle { font-weight: 400; color: var(--soft); }
+.stat-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px;
+}
+.stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.stat-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--soft);
+}
+.stat-chip.pos { background: rgba(48,209,88,0.12); color: #30d158; }
+.stat-chip.neg { background: rgba(255,69,58,0.12); color: #ff453a; }
+.stat-chart-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
