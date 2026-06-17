@@ -3852,20 +3852,20 @@ async function renderProfile(el) {
 
   // ── Persönliche Daten ──
   html += '<div class="section-title">Persönliche Daten</div>'
-    + '<div class="card profil-form">'
-    + profilField('Name', 'text', 'name', profile.name || '', 'Dein Name')
-    + profilField('Geburtstag', 'date', 'birthday', profile.birthday || '', '')
-    + profilField('Größe (cm)', 'number', 'height', profile.height || '', '175')
-    + profilField('Zielgewicht (kg)', 'number', 'goalWeight', profile.goalWeight || '', '75')
+    + '<div class="profil-form">'
+    + profilField('Name', 'text', 'name', profile.name || '', 'Dein Name', '👤', 'icon-bg-blue')
+    + profilField('Geburtstag', 'date', 'birthday', profile.birthday || '', '', '🎂', 'icon-bg-purple')
+    + profilField('Größe (cm)', 'number', 'height', profile.height || '', '175', '📏', 'icon-bg-teal')
+    + profilField('Zielgewicht (kg)', 'number', 'goalWeight', profile.goalWeight || '', '75', '🎯', 'icon-bg-orange')
     + '</div>';
 
   // ── Ziel & Erfahrung ──
   html += '<div class="section-title">Training</div>'
-    + '<div class="card profil-form">'
-    + profilSelect('Ziel', 'goal', profile.goal || '', ['', 'Muskelaufbau', 'Gewicht verlieren', 'Kraft aufbauen', 'Fitness verbessern', 'Abnehmen & Muskelaufbau'])
-    + profilSelect('Erfahrungslevel', 'level', profile.level || '', ['', 'Anfänger', 'Fortgeschritten', 'Profi'])
-    + profilSelect('Trainingstage / Woche', 'daysPerWeek', profile.daysPerWeek || '', ['', '2', '3', '4', '5', '6'])
-    + profilSelect('Equipment', 'equipment', profile.equipment || '', ['', 'Fitnessstudio', 'Heimtraining', 'Outdoor', 'Beides'])
+    + '<div class="profil-form">'
+    + profilSelect('Ziel', 'goal', profile.goal || '', ['', 'Muskelaufbau', 'Gewicht verlieren', 'Kraft aufbauen', 'Fitness verbessern', 'Abnehmen & Muskelaufbau'], '🏆', 'icon-bg-orange')
+    + profilSelect('Erfahrungslevel', 'level', profile.level || '', ['', 'Anfänger', 'Fortgeschritten', 'Profi'], '⚡', 'icon-bg-purple')
+    + profilSelect('Trainingstage / Woche', 'daysPerWeek', profile.daysPerWeek || '', ['', '2', '3', '4', '5', '6'], '📅', 'icon-bg-blue')
+    + profilSelect('Equipment', 'equipment', profile.equipment || '', ['', 'Fitnessstudio', 'Heimtraining', 'Outdoor', 'Beides'], '🏋️', 'icon-bg-green')
     + '</div>';
 
   // ── Trainingsstatistiken ──
@@ -3935,20 +3935,22 @@ async function renderProfile(el) {
   }
 }
 
-function profilField(label, type, key, value, placeholder) {
+function profilField(label, type, key, value, placeholder, icon, iconBg) {
+  var iconHtml = icon ? '<span class="profil-label-icon ' + (iconBg||'icon-bg-blue') + '">' + icon + '</span>' : '';
   return '<div class="profil-row">'
-    + '<label class="profil-label">' + label + '</label>'
-    + '<input class="profil-input input" type="' + type + '" data-key="' + key + '" value="' + esc(String(value)) + '" placeholder="' + placeholder + '">'
+    + '<label class="profil-label">' + iconHtml + label + '</label>'
+    + '<input class="profil-input" type="' + type + '" data-key="' + key + '" value="' + esc(String(value)) + '" placeholder="' + placeholder + '">'
     + '</div>';
 }
 
-function profilSelect(label, key, value, options) {
+function profilSelect(label, key, value, options, icon, iconBg) {
+  var iconHtml = icon ? '<span class="profil-label-icon ' + (iconBg||'icon-bg-blue') + '">' + icon + '</span>' : '';
   var opts = options.map(function(o) {
     return '<option value="' + o + '"' + (o === value ? ' selected' : '') + '>' + (o || '— wählen —') + '</option>';
   }).join('');
   return '<div class="profil-row">'
-    + '<label class="profil-label">' + label + '</label>'
-    + '<select class="profil-select input" data-key="' + key + '">' + opts + '</select>'
+    + '<label class="profil-label">' + iconHtml + label + '</label>'
+    + '<select class="profil-select" data-key="' + key + '">' + opts + '</select>'
     + '</div>';
 }
 
