@@ -3851,13 +3851,20 @@ async function renderProfile(el) {
     + '</div>';
 
   // ── Persönliche Daten ──
+  var latestWeightDisplay = latestWeight ? latestWeight + ' kg' : '';
   html += '<div class="section-title">Persönliche Daten</div>'
     + '<div class="profil-form">'
     + profilField('Name', 'text', 'name', profile.name || '', 'Dein Name', '👤', 'icon-bg-blue')
     + profilField('Geburtstag', 'date', 'birthday', profile.birthday || '', '', '🎂', 'icon-bg-purple')
     + profilField('Größe (cm)', 'number', 'height', profile.height || '', '175', '📏', 'icon-bg-teal')
+    + '<div class="profil-row profil-row-select" onclick="showAddWeightModal()">'
+    + '<span class="profil-label"><span class="profil-label-icon icon-bg-green">⚖️</span>Körpergewicht</span>'
+    + '<span class="profil-select-val' + (latestWeightDisplay ? '' : ' muted') + '">' + (latestWeightDisplay || '— eintragen —')
+    + ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4"><polyline points="6 9 12 15 18 9"/></svg></span>'
+    + '</div>'
     + profilField('Zielgewicht (kg)', 'number', 'goalWeight', profile.goalWeight || '', '75', '🎯', 'icon-bg-orange')
-    + '</div>';
+    + '</div>'
+    + (statsSort.length > 1 ? '<div class="card" style="margin-bottom:16px;padding:14px 16px"><div style="font-size:12px;color:var(--soft);margin-bottom:8px">Gewichtsverlauf</div><div class="chart-wrap"><canvas class="chart" id="weight-chart" height="100"></canvas></div></div>' : '');
 
   // ── Ziel & Erfahrung ──
   html += '<div class="section-title">Training</div>'
@@ -3876,28 +3883,6 @@ async function renderProfile(el) {
     + '<div class="stat-card"><div class="stat-value">' + streak + '</div><div class="stat-label">Streak (W)</div></div>'
     + '</div>';
 
-  // ── Körpergewicht ──
-  html += '<div class="section-title">Körpergewicht</div>'
-    + '<div class="card" style="margin-bottom:16px">'
-    + '<button class="btn btn-ghost" style="width:100%' + (statsSort.length > 0 ? ';margin-bottom:14px' : '') + '" onclick="showAddWeightModal()">'
-    + iconPlus() + ' Gewicht eintragen</button>';
-
-  if (statsSort.length > 1) {
-    html += '<div class="chart-wrap"><canvas class="chart" id="weight-chart" height="120"></canvas></div>';
-  }
-  if (statsSort.length > 0) {
-    html += '<div style="margin-top:12px">';
-    for (const entry of statsSort.slice(0, 10)) {
-      html += '<div class="weight-entry-row">'
-        + '<span class="weight-val">' + entry.weight + ' kg</span>'
-        + '<span style="display:flex;align-items:center;gap:10px">'
-        + '<span class="weight-date">' + formatDate(entry.date) + '</span>'
-        + '<button class="btn-icon btn-icon-danger" onclick="deleteWeightEntry(' + entry.id + ')">' + iconTrash() + '</button>'
-        + '</span></div>';
-    }
-    html += '</div>';
-  }
-  html += '</div>';
 
   // ── PIN ändern ──
   html += '<div class="section-title">Sicherheit</div>'
