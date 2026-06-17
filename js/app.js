@@ -3962,10 +3962,12 @@ function showProfilFieldSheet(key, label, type, value, placeholder) {
     var unit = key === 'height' ? 'cm' : key === 'goalWeight' ? 'kg' : '';
     bodyHtml = '<div class="pfs-number-wrap">'
       + '<button class="pfs-stepper" onclick="pfsStep(-' + step + ',' + step + ')">−</button>'
-      + '<div class="pfs-number-display"><span id="pfs-num-val">' + (num || placeholder) + '</span><span class="pfs-unit">' + unit + '</span></div>'
-      + '<button class="pfs-stepper" onclick="pfsStep(' + step + ',' + step + ')">+</button>'
+      + '<div class="pfs-number-display" onclick="pfsEditManual()">'
+      + '<input id="pfs-num-val" class="pfs-num-input" type="number" inputmode="decimal" value="' + (num || '') + '" placeholder="' + (placeholder||'0') + '" step="' + step + '">'
+      + '<span class="pfs-unit">' + unit + '</span>'
       + '</div>'
-      + '<input type="hidden" id="pfs-num-hidden" value="' + (num||'') + '">';
+      + '<button class="pfs-stepper" onclick="pfsStep(' + step + ',' + step + ')">+</button>'
+      + '</div>';
   } else {
     bodyHtml = '<input class="pfs-text-input" id="pfs-text" type="text" placeholder="' + esc(placeholder||label) + '" value="' + esc(value) + '" autofocus>';
   }
@@ -3991,14 +3993,17 @@ function showProfilFieldSheet(key, label, type, value, placeholder) {
   }, 100);
 }
 
-window.pfsStep = function(delta, step) {
-  var hidden = document.getElementById('pfs-num-hidden');
-  var display = document.getElementById('pfs-num-val');
-  var current = parseFloat(hidden.value) || 0;
+window.pfsStep = function(delta) {
+  var inp = document.getElementById('pfs-num-val');
+  var current = parseFloat(inp.value) || 0;
   var next = Math.round((current + delta) * 100) / 100;
   if (next < 0) next = 0;
-  hidden.value = next;
-  display.textContent = next;
+  inp.value = next;
+};
+
+window.pfsEditManual = function() {
+  var inp = document.getElementById('pfs-num-val');
+  if (inp) { inp.focus(); inp.select(); }
 };
 
 window.saveProfilField = function(key, type) {
@@ -4009,7 +4014,7 @@ window.saveProfilField = function(key, type) {
     var y = document.getElementById('pfs-y').value || '';
     if (y && m && d) val = y + '-' + m + '-' + d;
   } else if (type === 'number') {
-    val = document.getElementById('pfs-num-hidden').value;
+    val = document.getElementById('pfs-num-val').value;
   } else {
     val = document.getElementById('pfs-text').value.trim();
   }

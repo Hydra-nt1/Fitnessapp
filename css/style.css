@@ -2441,13 +2441,24 @@ canvas.chart { display: block; width: 100%; }
   min-width: 100px;
   justify-content: center;
 }
-#pfs-num-val {
+.pfs-num-input {
   font-size: 48px;
   font-weight: 800;
   letter-spacing: -1px;
   color: var(--text);
   line-height: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: center;
+  width: 120px;
+  font-family: 'Inter', sans-serif;
+  -moz-appearance: textfield;
+  cursor: text;
 }
+.pfs-num-input::-webkit-outer-spin-button,
+.pfs-num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.pfs-num-input::placeholder { color: var(--muted); }
 .pfs-unit {
   font-size: 18px;
   font-weight: 600;
