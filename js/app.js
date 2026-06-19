@@ -4461,7 +4461,10 @@ window.coachSend = async function() {
         body: JSON.stringify({ contents: contents })
       }
     );
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) {
+      var errBody = await resp.text();
+      throw new Error('HTTP ' + resp.status + ': ' + errBody);
+    }
     var data = await resp.json();
     var answer = data.candidates && data.candidates[0] && data.candidates[0].content
       && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
@@ -4477,7 +4480,7 @@ window.coachSend = async function() {
 
     _coachHistory.push({ role: 'ai', text: formatted });
   } catch (err) {
-    _coachHistory.push({ role: 'ai', text: '<p>⚠️ Verbindungsfehler. Bitte überprüfe deine Internetverbindung und versuche es erneut.</p>' });
+    _coachHistory.push({ role: 'ai', text: '<p>⚠️ Fehler: ' + escHtml(err.message || String(err)) + '</p>' });
   }
 
   renderCoach(document.getElementById('content-inner'));
