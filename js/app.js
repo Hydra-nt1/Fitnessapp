@@ -130,6 +130,19 @@
   }
 })();
 
+// ── Theme ─────────────────────────────────────────────────────
+
+(function() {
+  var t = localStorage.getItem('fittracker_theme') || 'dark';
+  if (t !== 'dark') document.documentElement.setAttribute('data-theme', t);
+})();
+
+function applyTheme(t) {
+  localStorage.setItem('fittracker_theme', t);
+  if (t === 'dark') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+}
+
 // ── Exercise Library ──────────────────────────────────────────
 
 const EXERCISE_LIBRARY = {
@@ -3902,6 +3915,29 @@ async function renderProfile(el) {
     + '<div class="stat-card"><div class="stat-value">' + streak + '</div><div class="stat-label">Streak (W)</div></div>'
     + '</div>';
 
+
+  // ── Design ──
+  var currentTheme = localStorage.getItem('fittracker_theme') || 'dark';
+  var themes = [
+    { id: 'dark',     label: 'Dark',    color: '#17171d', accent: '#4f7dff' },
+    { id: 'light',    label: 'Light',   color: '#ffffff', accent: '#2f6bff' },
+    { id: 'midnight', label: 'Midnight',color: '#0c0c1a', accent: '#7b6fff' },
+    { id: 'forest',   label: 'Forest',  color: '#121a14', accent: '#2ecc71' },
+    { id: 'sunset',   label: 'Sunset',  color: '#1e0e12', accent: '#ff6b4a' },
+  ];
+  html += '<div class="section-title">Design</div>'
+    + '<div class="theme-picker">';
+  for (var th of themes) {
+    html += '<button class="theme-option' + (th.id === currentTheme ? ' active' : '') + '" onclick="applyTheme(\'' + th.id + '\');renderProfile(document.getElementById(\'content-inner\'))">'
+      + '<div class="theme-preview" style="background:' + th.color + ';border-color:' + (th.id === currentTheme ? th.accent : 'transparent') + '">'
+      + '<div class="theme-preview-bar" style="background:' + th.accent + '"></div>'
+      + '<div class="theme-preview-lines"><div style="background:' + (th.id === 'light' ? '#e0e0e0' : '#ffffff22') + '"></div><div style="background:' + (th.id === 'light' ? '#e0e0e0' : '#ffffff22') + '"></div></div>'
+      + '</div>'
+      + '<span class="theme-label">' + th.label + '</span>'
+      + (th.id === currentTheme ? '<span class="theme-check">✓</span>' : '')
+      + '</button>';
+  }
+  html += '</div>';
 
   // ── PIN ändern ──
   html += '<div class="section-title">Sicherheit</div>'
