@@ -3272,35 +3272,68 @@ function makeSvgBarChart(labels, values, color) {
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:80px">' + bars + texts + '</svg>';
 }
 
+let _statSelectedDay = null;
+
+function selectStatDay(dayKey) {
+  _statSelectedDay = (_statSelectedDay === dayKey) ? null : dayKey;
+  renderHistory(document.getElementById('content-inner'));
+}
+
 async function renderHistory(el) {
-  const [allWeekEx, allPlanEx, plans] = await Promise.all([
+  const [allWeekEx, allPlanEx, plans, weekPlanEntries] = await Promise.all([
     dbGetAll('weekExercises'),
     dbGetAll('planExercises'),
-    dbGetAll('plans')
+    dbGetAll('plans'),
+    dbGetAll('weekPlan')
   ]);
+
+  const todayKey = getTodayKey();
+  const selectedDay = _statSelectedDay || todayKey;
+
+  // build dayPlanIds map
+  const dayPlanIds = {};
+  for (const e of weekPlanEntries) dayPlanIds[e.day] = getEntryPlanIds(e);
 
   let html = '<div class="page-header"><h1 class="page-title">Statistik</h1></div>';
 
-  if (allWeekEx.length === 0) {
-    html += '<div class="empty-state">'
-      + '<h3>Noch keine Daten</h3>'
-      + '<p>Trage Gewichte und Wiederholungen in deinen Tagen ein — hier siehst du dann deine Statistiken.</p>'
+  // ── Tag-Selektor ──
+  html += '<div class="week-strip" style="margin-bottom:20px">';
+  for (const day of DAYS) {
+    const isToday = day.key === todayKey;
+    const isSelected = day.key === selectedDay;
+    const hasPlan = (dayPlanIds[day.key] || []).length > 0;
+    html += '<div class="strip-day' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + '" onclick="selectStatDay(\'' + day.key + '\')" title="' + day.label + '">'
+      + '<span class="strip-lbl">' + day.short + '</span>'
+      + '<div class="strip-dot' + (hasPlan ? ' planned' : '') + '"></div>'
       + '</div>';
-    el.innerHTML = html;
-    return;
   }
+  html += '</div>';
 
   const exMap = {};
   for (const ex of allPlanEx) exMap[ex.id] = ex;
   const planMap = {};
   for (const p of plans) planMap[p.id] = p;
 
-  // ── Wöchentliches Volumen (Sätze gesamt) ──
+  // filter plans for selected day
+  const activePlanIds = new Set(dayPlanIds[selectedDay] || []);
+
+  if (allWeekEx.length === 0 || activePlanIds.size === 0) {
+    const dayLabel = DAYS.find(d => d.key === selectedDay);
+    html += '<div class="empty-state">'
+      + '<h3>' + (dayLabel ? dayLabel.label : '') + '</h3>'
+      + '<p>Kein Trainingsplan für diesen Tag zugewiesen oder noch keine Daten eingetragen.</p>'
+      + '</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  // ── Wöchentliches Volumen für diesen Tag ──
   const volByWeek = {};
   for (const we of allWeekEx) {
-    const key = we.weekStart;
-    if (!volByWeek[key]) volByWeek[key] = 0;
-    volByWeek[key] += (we.sets || 0);
+    const ex = exMap[we.planExerciseId];
+    if (!ex || !activePlanIds.has(ex.planId)) continue;
+    if (!volByWeek[we.weekStart]) volByWeek[we.weekStart] = 0;
+    volByWeek[we.weekStart] += (we.sets || 0);
   }
   const volWeeks = Object.keys(volByWeek).sort().slice(-8);
   if (volWeeks.length > 1) {
@@ -3308,37 +3341,17 @@ async function renderHistory(el) {
       const d = new Date(parseInt(w));
       return 'KW' + Math.ceil((d - new Date(d.getFullYear(),0,1)) / 604800000);
     });
-    const volVals = volWeeks.map(w => volByWeek[w]);
     html += '<div class="stat-card">'
       + '<div class="stat-card-title">Wöchentliches Volumen <span class="stat-subtitle">(Sätze gesamt)</span></div>'
-      + makeSvgBarChart(volLabels, volVals, '#4f7dff')
+      + makeSvgBarChart(volLabels, volWeeks.map(w => volByWeek[w]), '#4f7dff')
       + '</div>';
   }
 
-  // ── Trainingstage pro Woche ──
-  const activeDaysByWeek = {};
-  for (const we of allWeekEx) {
-    const ex = exMap[we.planExerciseId];
-    if (!ex) continue;
-    if (!activeDaysByWeek[we.weekStart]) activeDaysByWeek[we.weekStart] = new Set();
-    activeDaysByWeek[we.weekStart].add(ex.planId);
-  }
-  const actWeeks = Object.keys(activeDaysByWeek).sort().slice(-8);
-  if (actWeeks.length > 1) {
-    const actLabels = actWeeks.map(w => {
-      const d = new Date(parseInt(w));
-      return 'KW' + Math.ceil((d - new Date(d.getFullYear(),0,1)) / 604800000);
-    });
-    const actVals = actWeeks.map(w => activeDaysByWeek[w].size);
-    html += '<div class="stat-card">'
-      + '<div class="stat-card-title">Aktive Trainingstage <span class="stat-subtitle">(pro Woche)</span></div>'
-      + makeSvgBarChart(actLabels, actVals, '#30d158')
-      + '</div>';
-  }
-
-  // ── Fortschritt pro Übung (Gewicht) ──
+  // ── Fortschritt pro Übung ──
   const byEx = {};
   for (const we of allWeekEx) {
+    const ex = exMap[we.planExerciseId];
+    if (!ex || !activePlanIds.has(ex.planId)) continue;
     if (!byEx[we.planExerciseId]) byEx[we.planExerciseId] = [];
     byEx[we.planExerciseId].push(we);
   }
@@ -3350,6 +3363,12 @@ async function renderHistory(el) {
     if (!ex) continue;
     if (!byPlan[ex.planId]) byPlan[ex.planId] = [];
     byPlan[ex.planId].push({ ex, entries: entries.sort((a,b) => a.weekStart - b.weekStart) });
+  }
+
+  if (Object.keys(byPlan).length === 0) {
+    html += '<div class="empty-state"><p>Noch zu wenig Daten für Graphen — trage mindestens 2 Wochen ein.</p></div>';
+    el.innerHTML = html;
+    return;
   }
 
   for (const [planId, exList] of Object.entries(byPlan)) {
