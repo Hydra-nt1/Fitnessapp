@@ -2597,6 +2597,6 @@ canvas.chart { display: block; width: 100%; }
 [data-theme="light"] .profil-sheet { background: #ffffff; }
 [data-theme="light"] .profil-sheet-opt { color: #000; }
 [data-theme="light"] .modal-overlay { background: rgba(0,0,0,0.4); }
-[data-theme="light"] .profil-hero { color: #ffffff; }
-[data-theme="light"] .profil-name { color: #ffffff; }
-[data-theme="light"] .profil-meta { color: rgba(255,255,255,0.7); }
+[data-theme="light"] .profil-hero { background: #ffffff; border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .profil-name { color: #000000; }
+[data-theme="light"] .profil-meta { color: #6c6c70; }
