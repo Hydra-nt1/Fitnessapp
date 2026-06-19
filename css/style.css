@@ -2630,3 +2630,7 @@ canvas.chart { display: block; width: 100%; }
 .coach-send-btn { width: 42px; height: 42px; background: var(--accent); border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; color: #fff; transition: opacity 0.15s; }
 .coach-send-btn:hover { opacity: 0.85; }
 .coach-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.coach-key-banner { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; color: #fbbf24; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.coach-key-btn { background: #fbbf24; color: #000; border: none; border-radius: 8px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.coach-key-set { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.coach-key-change { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer; }

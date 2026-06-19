@@ -4378,8 +4378,14 @@ function renderCoach(el) {
       + '</div>';
   }
 
+  var hasKey = !!localStorage.getItem('fittracker_gemini_key');
+  var keyBanner = !hasKey
+    ? '<div class="coach-key-banner">⚙️ Kein API-Key. <button class="coach-key-btn" onclick="showCoachKeySheet()">Key eintragen</button></div>'
+    : '<div class="coach-key-set">✅ API-Key aktiv &nbsp;<button class="coach-key-change" onclick="showCoachKeySheet()">ändern</button></div>';
+
   el.innerHTML = '<div class="coach-wrap">'
     + '<div class="coach-header"><div class="coach-header-title">KI Coach</div><button class="coach-clear-btn" onclick="coachClear()">Verlauf löschen</button></div>'
+    + keyBanner
     + '<div class="coach-messages" id="coach-messages">' + msgsHtml + '</div>'
     + '<div class="coach-input-bar">'
     + '<textarea id="coach-input" class="coach-input" placeholder="Frage stellen…" rows="1" onkeydown="coachKeydown(event)"></textarea>'
@@ -4402,6 +4408,35 @@ window.coachAsk = function(question) {
   var input = document.getElementById('coach-input');
   if (input) input.value = question;
   coachSend();
+};
+
+window.showCoachKeySheet = function() {
+  var current = localStorage.getItem('fittracker_gemini_key') || '';
+  var ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = '<div class="profil-sheet" style="max-width:420px">'
+    + '<div class="profil-sheet-handle"></div>'
+    + '<div class="profil-sheet-title">Gemini API-Key</div>'
+    + '<div class="pfs-body">'
+    + '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 12px">Kostenlosen Key erstellen auf <strong style="color:var(--text)">aistudio.google.com</strong> → "Get API Key"</p>'
+    + '<input id="coach-key-input" type="text" class="coach-input" style="width:100%;border-radius:10px;padding:12px;font-size:0.9rem;margin-bottom:4px" placeholder="AIzaSy..." value="' + escHtml(current) + '">'
+    + '</div>'
+    + '<div class="pfs-actions">'
+    + '<button class="pfs-cancel" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
+    + '<button class="pfs-save" onclick="saveCoachKey()">Speichern</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
+  setTimeout(function() { var inp = document.getElementById('coach-key-input'); if (inp) inp.focus(); }, 100);
+};
+
+window.saveCoachKey = function() {
+  var val = (document.getElementById('coach-key-input') || {}).value || '';
+  val = val.trim();
+  if (val) localStorage.setItem('fittracker_gemini_key', val);
+  else localStorage.removeItem('fittracker_gemini_key');
+  document.querySelector('.modal-overlay').remove();
+  renderCoach(document.getElementById('content-inner'));
 };
 
 window.coachClear = function() {
@@ -4449,10 +4484,16 @@ window.coachSend = async function() {
     }
   }
 
-  var _k1 = 'AQ.Ab8RN6Lzx';
-  var _k2 = 'ajVo7-DgVnLA';
-  var _k3 = 'c--OxmWi52OaB4lph2rRjjXsaaHcg';
-  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + _k1 + _k2 + _k3;
+  var _geminiKey = localStorage.getItem('fittracker_gemini_key') || '';
+  if (!_geminiKey) {
+    _coachHistory.push({ role: 'ai', text: '<p>⚠️ Kein API-Key hinterlegt. Geh zu <strong>Profil → Coach-Einstellungen</strong> und trage deinen Gemini API-Key ein.</p><p>Kostenlosen Key erstellen: <strong>aistudio.google.com</strong> → "Get API Key"</p>' });
+    if (sendBtn) sendBtn.disabled = false;
+    renderCoach(document.getElementById('content-inner'));
+    var msgsEl2 = document.getElementById('coach-messages');
+    if (msgsEl2) msgsEl2.scrollTop = msgsEl2.scrollHeight;
+    return;
+  }
+  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + _geminiKey;
   try {
     var resp = await fetch(_apiUrl,
       {
