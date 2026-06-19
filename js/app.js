@@ -4452,7 +4452,7 @@ window.coachSend = async function() {
   var _k1 = 'AQ.Ab8RN6Lzx';
   var _k2 = 'ajVo7-DgVnLA';
   var _k3 = 'c--OxmWi52OaB4lph2rRjjXsaaHcg';
-  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + _k1 + _k2 + _k3;
+  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + _k1 + _k2 + _k3;
   try {
     var resp = await fetch(_apiUrl,
       {
