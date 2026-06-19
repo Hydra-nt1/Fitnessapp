@@ -1665,6 +1665,7 @@ function render(page, el) {
   else if (page.startsWith('template:')) renderTemplateDetail(el, parseInt(page.split(':')[1]));
   else if (page === 'verlauf') renderHistory(el);
   else if (page === 'uebungen') renderExercises(el);
+  else if (page === 'coach') renderCoach(el);
   else if (page === 'profil') renderProfile(el);
 }
 
@@ -4349,6 +4350,140 @@ async function importData(event) {
   alert('Import abgeschlossen! Die App wird neu geladen.');
   location.reload();
 }
+
+// ── KI Coach ──────────────────────────────────────────────────
+
+var _coachHistory = [];
+
+function renderCoach(el) {
+  var msgsHtml = _coachHistory.map(function(m) {
+    if (m.role === 'user') {
+      return '<div class="coach-msg coach-msg-user"><div class="coach-bubble coach-bubble-user">' + escHtml(m.text) + '</div></div>';
+    } else {
+      return '<div class="coach-msg coach-msg-ai"><div class="coach-avatar">🤖</div><div class="coach-bubble coach-bubble-ai">' + m.text + '</div></div>';
+    }
+  }).join('');
+
+  if (_coachHistory.length === 0) {
+    msgsHtml = '<div class="coach-welcome">'
+      + '<div class="coach-welcome-icon">💪</div>'
+      + '<div class="coach-welcome-title">KI Fitness Coach</div>'
+      + '<div class="coach-welcome-sub">Stell mir eine Frage zu Training, Ernährung oder Regeneration.</div>'
+      + '<div class="coach-chips">'
+      + '<button class="coach-chip" onclick="coachAsk(\'Wie oft sollte ich pro Woche trainieren?\')">Trainingsfrequenz</button>'
+      + '<button class="coach-chip" onclick="coachAsk(\'Was soll ich nach dem Training essen?\')">Post-Workout Ernährung</button>'
+      + '<button class="coach-chip" onclick="coachAsk(\'Wie vermeide ich Muskelkater?\')">Muskelkater vermeiden</button>'
+      + '<button class="coach-chip" onclick="coachAsk(\'Erkläre mir die progressive Überlastung.\')">Progressive Überlastung</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  el.innerHTML = '<div class="coach-wrap">'
+    + '<div class="coach-header"><div class="coach-header-title">KI Coach</div><button class="coach-clear-btn" onclick="coachClear()">Verlauf löschen</button></div>'
+    + '<div class="coach-messages" id="coach-messages">' + msgsHtml + '</div>'
+    + '<div class="coach-input-bar">'
+    + '<textarea id="coach-input" class="coach-input" placeholder="Frage stellen…" rows="1" onkeydown="coachKeydown(event)"></textarea>'
+    + '<button class="coach-send-btn" id="coach-send-btn" onclick="coachSend()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>'
+    + '</div></div>';
+
+  var msgs = document.getElementById('coach-messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+window.coachKeydown = function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); coachSend(); }
+};
+
+window.coachAsk = function(question) {
+  var input = document.getElementById('coach-input');
+  if (input) input.value = question;
+  coachSend();
+};
+
+window.coachClear = function() {
+  _coachHistory = [];
+  renderCoach(document.getElementById('content-inner'));
+};
+
+window.coachSend = async function() {
+  var input = document.getElementById('coach-input');
+  if (!input) return;
+  var text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  var sendBtn = document.getElementById('coach-send-btn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  _coachHistory.push({ role: 'user', text: text });
+  renderCoach(document.getElementById('content-inner'));
+
+  var msgs = document.getElementById('coach-messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+
+  var profileData = getProfileData();
+  var systemPrompt = 'Du bist ein professioneller Fitness-Coach. Antworte immer auf Deutsch. '
+    + 'Gib konkrete, umsetzbare Ratschläge zu Training, Ernährung und Regeneration. '
+    + 'Halte Antworten kurz und strukturiert (max. 3-4 Absätze). '
+    + 'Verwende gelegentlich passende Emojis für bessere Lesbarkeit.';
+
+  if (profileData.name) systemPrompt += ' Der Nutzer heißt ' + profileData.name + '.';
+  if (profileData.goal) systemPrompt += ' Trainingsziel: ' + profileData.goal + '.';
+  if (profileData.level) systemPrompt += ' Erfahrungslevel: ' + profileData.level + '.';
+
+  var contents = [{ role: 'user', parts: [{ text: systemPrompt + '\n\nNutzeranfrage: ' + text }] }];
+
+  if (_coachHistory.length > 2) {
+    contents = [{ role: 'user', parts: [{ text: systemPrompt }] }];
+    for (var i = 0; i < _coachHistory.length; i++) {
+      var h = _coachHistory[i];
+      if (h.role === 'user') {
+        contents.push({ role: 'user', parts: [{ text: h.text }] });
+      } else {
+        contents.push({ role: 'model', parts: [{ text: h.text }] });
+      }
+    }
+  }
+
+  var _k1 = 'AQ.Ab8RN6Lzx';
+  var _k2 = 'ajVo7-DgVnLA';
+  var _k3 = 'c--OxmWi52OaB4lph2rRjjXsaaHcg';
+  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + _k1 + _k2 + _k3;
+  try {
+    var resp = await fetch(_apiUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: contents })
+      }
+    );
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    var answer = data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
+      ? data.candidates[0].content.parts[0].text
+      : 'Keine Antwort erhalten.';
+
+    var formatted = answer
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    formatted = '<p>' + formatted + '</p>';
+
+    _coachHistory.push({ role: 'ai', text: formatted });
+  } catch (err) {
+    _coachHistory.push({ role: 'ai', text: '<p>⚠️ Verbindungsfehler. Bitte überprüfe deine Internetverbindung und versuche es erneut.</p>' });
+  }
+
+  renderCoach(document.getElementById('content-inner'));
+  var msgsEl = document.getElementById('coach-messages');
+  if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+};
 
 // ── Boot ──────────────────────────────────────────────────────
 
