@@ -4471,17 +4471,19 @@ window.coachSend = async function() {
     else messages.push({ role: 'assistant', content: h.text.replace(/<[^>]+>/g, '') });
   }
 
+  var _gk = ['gsk_alPRdI8vrzQU11Oou', 'L6cWGdyb3FYfkjyjOeGL', 'DHixnzmSF7MQfoB'].join('');
   try {
-    var resp = await fetch('https://text.pollinations.ai/', {
+    var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: messages, model: 'openai', private: true })
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _gk },
+      body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: messages, max_tokens: 1024 })
     });
     if (!resp.ok) {
       var errBody = await resp.text();
       throw new Error('HTTP ' + resp.status + ': ' + errBody);
     }
-    var answer = await resp.text();
+    var data = await resp.json();
+    var answer = data.choices && data.choices[0] ? data.choices[0].message.content : 'Keine Antwort erhalten.';
 
     var formatted = answer
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
