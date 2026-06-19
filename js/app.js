@@ -4378,14 +4378,8 @@ function renderCoach(el) {
       + '</div>';
   }
 
-  var hasKey = !!localStorage.getItem('fittracker_gemini_key');
-  var keyBanner = !hasKey
-    ? '<div class="coach-key-banner">⚙️ Kein API-Key. <button class="coach-key-btn" onclick="showCoachKeySheet()">Key eintragen</button></div>'
-    : '<div class="coach-key-set">✅ API-Key aktiv &nbsp;<button class="coach-key-change" onclick="showCoachKeySheet()">ändern</button></div>';
-
   el.innerHTML = '<div class="coach-wrap">'
     + '<div class="coach-header"><div class="coach-header-title">KI Coach</div><button class="coach-clear-btn" onclick="coachClear()">Verlauf löschen</button></div>'
-    + keyBanner
     + '<div class="coach-messages" id="coach-messages">' + msgsHtml + '</div>'
     + '<div class="coach-input-bar">'
     + '<textarea id="coach-input" class="coach-input" placeholder="Frage stellen…" rows="1" onkeydown="coachKeydown(event)"></textarea>'
@@ -4470,39 +4464,24 @@ window.coachSend = async function() {
   if (profileData.goal) systemPrompt += ' Trainingsziel: ' + profileData.goal + '.';
   if (profileData.level) systemPrompt += ' Erfahrungslevel: ' + profileData.level + '.';
 
-  var contents = [{ role: 'user', parts: [{ text: systemPrompt + '\n\nNutzeranfrage: ' + text }] }];
-
-  if (_coachHistory.length > 2) {
-    contents = [{ role: 'user', parts: [{ text: systemPrompt }] }];
-    for (var i = 0; i < _coachHistory.length; i++) {
-      var h = _coachHistory[i];
-      if (h.role === 'user') {
-        contents.push({ role: 'user', parts: [{ text: h.text }] });
-      } else {
-        contents.push({ role: 'model', parts: [{ text: h.text }] });
-      }
-    }
+  var messages = [{ role: 'system', content: systemPrompt }];
+  for (var i = 0; i < _coachHistory.length; i++) {
+    var h = _coachHistory[i];
+    if (h.role === 'user') messages.push({ role: 'user', content: h.text });
+    else messages.push({ role: 'assistant', content: h.text.replace(/<[^>]+>/g, '') });
   }
 
-  var _geminiKey = localStorage.getItem('fittracker_gemini_key') || ['AQ.Ab8RN6Kq86mg', 'O38Tm9bOPgg_IMdl0', 'fCOOWRBB5mSYdXmf3h3VA'].join('');
-  var _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + _geminiKey;
   try {
-    var resp = await fetch(_apiUrl,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: contents })
-      }
-    );
+    var resp = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: messages, model: 'openai', private: true })
+    });
     if (!resp.ok) {
       var errBody = await resp.text();
       throw new Error('HTTP ' + resp.status + ': ' + errBody);
     }
-    var data = await resp.json();
-    var answer = data.candidates && data.candidates[0] && data.candidates[0].content
-      && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
-      ? data.candidates[0].content.parts[0].text
-      : 'Keine Antwort erhalten.';
+    var answer = await resp.text();
 
     var formatted = answer
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
