@@ -35,53 +35,6 @@
   --muted: #aeaeb2;
 }
 
-/* ── Midnight ── */
-[data-theme="midnight"] {
-  --bg: #000000;
-  --surface: #0c0c1a;
-  --surface2: #13132a;
-  --surface3: #1c1c3a;
-  --border: rgba(120,100,255,0.12);
-  --border2: rgba(120,100,255,0.22);
-  --blue: #7b6fff;
-  --green: #30d158;
-  --red: #ff453a;
-  --text: #e8e8ff;
-  --soft: #8888aa;
-  --muted: #44445a;
-}
-
-/* ── Forest ── */
-[data-theme="forest"] {
-  --bg: #0a110d;
-  --surface: #121a14;
-  --surface2: #1a241c;
-  --surface3: #223026;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --blue: #2ecc71;
-  --green: #27ae60;
-  --red: #e74c3c;
-  --text: #e8f5e9;
-  --soft: #81a889;
-  --muted: #3d5a42;
-}
-
-/* ── Sunset ── */
-[data-theme="sunset"] {
-  --bg: #12080a;
-  --surface: #1e0e12;
-  --surface2: #28141a;
-  --surface3: #341c22;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --blue: #ff6b4a;
-  --green: #30d158;
-  --red: #ff453a;
-  --text: #fff0ee;
-  --soft: #aa8882;
-  --muted: #5a3a38;
-}
 
 html, body {
   height: 100%;

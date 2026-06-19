@@ -3919,11 +3919,8 @@ async function renderProfile(el) {
   // ── Design ──
   var currentTheme = localStorage.getItem('fittracker_theme') || 'dark';
   var themes = [
-    { id: 'dark',     label: 'Dark',    color: '#17171d', accent: '#4f7dff' },
-    { id: 'light',    label: 'Light',   color: '#ffffff', accent: '#2f6bff' },
-    { id: 'midnight', label: 'Midnight',color: '#0c0c1a', accent: '#7b6fff' },
-    { id: 'forest',   label: 'Forest',  color: '#121a14', accent: '#2ecc71' },
-    { id: 'sunset',   label: 'Sunset',  color: '#1e0e12', accent: '#ff6b4a' },
+    { id: 'dark',  label: 'Dark',  color: '#17171d', accent: '#4f7dff' },
+    { id: 'light', label: 'Light', color: '#ffffff', accent: '#2f6bff' },
   ];
   html += '<div class="section-title">Design</div>'
     + '<div class="theme-picker">';
