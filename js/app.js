@@ -1,9 +1,14 @@
 // ── Supabase Auth ─────────────────────────────────────────────
 
-var _supabase = window.supabase.createClient(
-  'https://lambfcrvsvejmrabjspo.supabase.co',
-  ['sb_publishable_VlcBmspTvDs', 'I2Rh4OaR2RA_zbI2UA9E'].join('')
-);
+var _supabase = null;
+try {
+  _supabase = window.supabase.createClient(
+    'https://lambfcrvsvejmrabjspo.supabase.co',
+    ['sb_publishable_VlcBmspTvDs', 'I2Rh4OaR2RA_zbI2UA9E'].join('')
+  );
+} catch(e) {
+  console.error('Supabase init failed:', e);
+}
 var _currentUser = null;
 var _saveTimer = null;
 
@@ -1547,11 +1552,19 @@ async function init() {
   var t = localStorage.getItem('fittracker_theme') || 'dark';
   if (t !== 'dark') document.documentElement.setAttribute('data-theme', t);
   showAuthOverlay();
-  var sessionResult = await _supabase.auth.getSession();
-  var session = sessionResult.data && sessionResult.data.session;
-  if (session && session.user) {
-    _currentUser = session.user;
-    await onLogin();
+  if (!_supabase) {
+    document.getElementById('auth-error').textContent = 'Verbindungsfehler – bitte Seite neu laden.';
+    return;
+  }
+  try {
+    var sessionResult = await _supabase.auth.getSession();
+    var session = sessionResult.data && sessionResult.data.session;
+    if (session && session.user) {
+      _currentUser = session.user;
+      await onLogin();
+    }
+  } catch(e) {
+    console.error('Auth error:', e);
   }
 }
 
@@ -4480,14 +4493,14 @@ window.coachSend = async function() {
 var _SYNC_STORES = ['plans','planExercises','workoutSessions','workoutSets','bodyStats','weekPlan','customExercises','weekExercises'];
 
 async function cloudSave() {
-  if (!_currentUser) return;
+  if (!_currentUser || !_supabase) return;
   var data = { profile: localStorage.getItem('fittracker_profile') || '{}', theme: localStorage.getItem('fittracker_theme') || 'dark' };
   for (var s of _SYNC_STORES) { try { data[s] = await dbGetAll(s); } catch(e) { data[s] = []; } }
   await _supabase.from('profiles').upsert({ id: _currentUser.id, data: data, updated_at: new Date().toISOString() });
 }
 
 async function cloudLoad() {
-  if (!_currentUser) return;
+  if (!_currentUser || !_supabase) return;
   var result = await _supabase.from('profiles').select('data').eq('id', _currentUser.id).single();
   if (!result.data) return;
   var backup = result.data.data;
