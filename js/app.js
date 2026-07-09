@@ -1497,6 +1497,11 @@ const DEFAULT_PLANS = [
     ]
   },
   {
+    name: 'Bauch & Beine',
+    muscleGroup: 'Bauch & Beine',
+    exercises: []
+  },
+  {
     name: 'Cardio',
     muscleGroup: 'Cardio',
     exercises: [
@@ -2495,6 +2500,7 @@ function getMuscleLibraryGroups(muscleGroup) {
     'Bauch':            ['Bauch & Core'],
     'Bauch & Core':     ['Bauch & Core'],
     'Bauch Intensiv':   ['Bauch & Core'],
+    'Bauch & Beine':    ['Bauch & Core', 'Beine — Quadrizeps', 'Beine — Hamstrings & Gesäß', 'Waden'],
     'Core':             ['Bauch & Core'],
 
     // Ganzkörper → alles außer Cardio/Dehnen
@@ -3483,7 +3489,7 @@ async function renderExercises(el) {
 
   // Group selector options — aligned with training plans
   var _exGroups = ['Push Day','Pull Day','Beine','Schultern & Arme','Upper Body','Ganzkörper',
-    'Brust & Trizeps','Rücken & Bizeps','Bauch','Bauch & Core','Bauch Intensiv','Cardio',
+    'Brust & Trizeps','Rücken & Bizeps','Bauch','Bauch & Core','Bauch Intensiv','Bauch & Beine','Cardio',
     'Beine & Gesäß','Schultern','Arme'];
   var groupOptions = _exGroups.map(function(g) {
     return '<option value="' + esc(g) + '">' + esc(g) + '</option>';
