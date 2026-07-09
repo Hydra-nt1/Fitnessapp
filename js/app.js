@@ -2500,7 +2500,8 @@ function getMuscleLibraryGroups(muscleGroup) {
     'Bauch':            ['Bauch & Core'],
     'Bauch & Core':     ['Bauch & Core'],
     'Bauch Intensiv':   ['Bauch & Core'],
-    'Bauch & Beine':    ['Bauch & Core', 'Beine — Quadrizeps', 'Beine — Hamstrings & Gesäß', 'Waden'],
+    'Bauch & Beine':    ['Bauch & Core', 'Bauch', 'Bauch & Beine',
+                         'Beine — Quadrizeps', 'Beine — Hamstrings & Gesäß', 'Waden', 'Beine', 'Beine & Gesäß'],
     'Core':             ['Bauch & Core'],
 
     // Ganzkörper → alles außer Cardio/Dehnen
