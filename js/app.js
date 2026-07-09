@@ -1464,6 +1464,15 @@ const DEFAULT_PLANS = [
     ]
   },
   {
+    name: 'Bauch',
+    muscleGroup: 'Bauch',
+    exercises: [
+      { name: 'Crunches',                    sets: 3, reps: 20, weight: 0  },
+      { name: 'Leg Raises (hängend)',        sets: 3, reps: 12, weight: 0  },
+      { name: 'Plank',                       sets: 3, reps: 60, weight: 0  },
+    ]
+  },
+  {
     name: 'Bauch & Core',
     muscleGroup: 'Bauch',
     exercises: [
