@@ -3529,7 +3529,6 @@ async function renderExercises(el) {
     return '<div class="exercise-list-row" data-name="' + esc(name) + '" onclick="showExerciseDetail(\'' + safeName + '\')">'
       + '<div class="ex-row-info">'
       + '<span class="ex-row-name">' + esc(name) + '</span>'
-      + (item.custom ? '<span class="ex-custom-badge">Eigene</span>' : '')
       + (info.area ? '<span class="ex-row-area">' + esc(info.area) + '</span>' : '')
       + '</div>'
       + deleteBtn
@@ -3548,12 +3547,12 @@ async function renderExercises(el) {
       + '</div>';
   }
 
-  // Custom exercises at the top, open by default
+  // Custom exercises at the top
   if (customExercises.length) {
     rows += makeGroupSection('Meine Übungen',
       customExercises.map(function(cx) {
         return makeExRow({ name: cx.name, custom: true, customId: cx.id });
-      }).join(''), true);
+      }).join(''), false);
   }
   for (const [group, items] of Object.entries(groupMap)) {
     if (!items.length) continue;
