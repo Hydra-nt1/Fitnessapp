@@ -161,6 +161,22 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+
+  // Global ripple effect
+  document.addEventListener('pointerdown', function(e) {
+    var el = e.target.closest('.btn, .pill, .nav-item, .card, .tag-ex-result, .exercise-list-row, .auth-btn, .rest-adjust-btn, .rest-dismiss-btn, .btn-icon');
+    if (!el) return;
+    el.classList.add('ripple-host');
+    var rect = el.getBoundingClientRect();
+    var size = Math.max(rect.width, rect.height);
+    var x = e.clientX - rect.left - size / 2;
+    var y = e.clientY - rect.top - size / 2;
+    var circle = document.createElement('span');
+    circle.className = 'ripple-circle';
+    circle.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + x + 'px;top:' + y + 'px';
+    el.appendChild(circle);
+    setTimeout(function() { circle.remove(); }, 600);
+  }, { passive: true });
 </script>
 </body>
 </html>
