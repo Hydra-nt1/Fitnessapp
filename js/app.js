@@ -3524,7 +3524,7 @@ async function renderExercises(el) {
     var info = getExerciseInfo(name);
     var safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var deleteBtn = item.custom
-      ? '<button class="btn-icon btn-icon-danger" style="margin-left:4px" onclick="event.stopPropagation();deleteCustomExercise(' + item.customId + ')" title="Löschen">' + iconTrash() + '</button>'
+      ? '<button class="btn-icon btn-icon-danger" style="margin-left:4px" onclick="event.stopPropagation();deleteCustomExercise(' + item.customId + ',this)" title="Löschen">' + iconTrash() + '</button>'
       : '<button class="btn-icon btn-icon-danger" style="margin-left:4px" onclick="event.stopPropagation();hideLibraryExercise(\'' + safeName + '\')" title="Löschen">' + iconTrash() + '</button>';
     return '<div class="exercise-list-row" data-name="' + esc(name) + '" onclick="showExerciseDetail(\'' + safeName + '\')">'
       + '<div class="ex-row-info">'
@@ -3604,9 +3604,15 @@ async function saveCustomExercise() {
   go('uebungen');
 }
 
-async function deleteCustomExercise(id) {
+async function deleteCustomExercise(id, btn) {
   await dbDelete('customExercises', id);
-  go('uebungen');
+  // Remove the row directly without re-rendering the full page
+  var row = btn ? btn.closest('.exercise-list-row') : null;
+  if (row) {
+    row.remove();
+  } else {
+    go('uebungen');
+  }
 }
 
 function hideLibraryExercise(name) {
