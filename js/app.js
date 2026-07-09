@@ -2525,27 +2525,49 @@ function tagExFilter(query, planId, dayKey, muscleGroup, weekOffset) {
 
   var groups = mappedGroups || Object.keys(EXERCISE_LIBRARY);
 
+  var multiGroup = mappedGroups && mappedGroups.length > 1;
   let html = '';
-  let count = 0;
-  var limit = q ? 20 : 30; // show more when browsing without a query
-  for (const group of groups) {
-    const matches = EXERCISE_LIBRARY[group].filter(function(e) {
-      return !q || e.toLowerCase().includes(q);
-    });
-    for (const ex of matches) {
-      const safe = ex.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      const exInfo = getExerciseInfo(ex);
-      html += '<div class="tag-ex-result" onclick="addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
-        + '<div class="ter-info"><span class="ter-name">' + esc(ex) + '</span>'
-        + (exInfo.area ? '<span class="ter-area">' + esc(exInfo.area) + '</span>' : '')
-        + '</div>'
-        + (mappedGroups && mappedGroups.length > 1 ? '<span class="ter-group">' + group + '</span>' : '')
-        + '<span class="ter-add">' + iconPlus(14) + '</span>'
-        + '</div>';
-      count++;
+
+  if (!q && multiGroup) {
+    // Browse mode with multiple sub-groups: show all, grouped with headers
+    for (const group of groups) {
+      var exList = EXERCISE_LIBRARY[group] || [];
+      if (!exList.length) continue;
+      html += '<div class="ter-group-header">' + esc(group) + '</div>';
+      for (const ex of exList) {
+        const safe = ex.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const exInfo = getExerciseInfo(ex);
+        html += '<div class="tag-ex-result" onclick="addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
+          + '<div class="ter-info"><span class="ter-name">' + esc(ex) + '</span>'
+          + (exInfo.area ? '<span class="ter-area">' + esc(exInfo.area) + '</span>' : '')
+          + '</div>'
+          + '<span class="ter-add">' + iconPlus(14) + '</span>'
+          + '</div>';
+      }
+    }
+  } else {
+    // Search mode: flat list with group badge, limited to 25 results
+    var limit = 25;
+    var count = 0;
+    for (const group of groups) {
+      const matches = (EXERCISE_LIBRARY[group] || []).filter(function(e) {
+        return !q || e.toLowerCase().includes(q);
+      });
+      for (const ex of matches) {
+        const safe = ex.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const exInfo = getExerciseInfo(ex);
+        html += '<div class="tag-ex-result" onclick="addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
+          + '<div class="ter-info"><span class="ter-name">' + esc(ex) + '</span>'
+          + (exInfo.area ? '<span class="ter-area">' + esc(exInfo.area) + '</span>' : '')
+          + '</div>'
+          + (multiGroup ? '<span class="ter-group">' + esc(group) + '</span>' : '')
+          + '<span class="ter-add">' + iconPlus(14) + '</span>'
+          + '</div>';
+        count++;
+        if (count >= limit) break;
+      }
       if (count >= limit) break;
     }
-    if (count >= limit) break;
   }
 
   if (!html && q) {
