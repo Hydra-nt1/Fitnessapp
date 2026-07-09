@@ -3499,18 +3499,15 @@ async function renderExercises(el) {
     for (const name of exList) libraryNames.add(name);
   }
 
-  // Build group→exercises map (library + custom, no duplicates)
+  // Custom exercises always rendered first as their own section (with delete button)
+  var customNames = new Set(customExercises.map(function(cx) { return cx.name; }));
+
+  // Build group→exercises map (library only, custom handled separately)
   var groupMap = {};
   for (const [group, exList] of Object.entries(EXERCISE_LIBRARY)) {
     groupMap[group] = exList
-      .filter(function(name) { return !hiddenSet.has(name); })
+      .filter(function(name) { return !hiddenSet.has(name) && !customNames.has(name); })
       .map(function(name) { return { name: name, custom: false }; });
-  }
-  for (const cx of customExercises) {
-    // Skip if same name already exists in library (dedup)
-    if (libraryNames.has(cx.name)) continue;
-    if (!groupMap[cx.muscleGroup]) groupMap[cx.muscleGroup] = [];
-    groupMap[cx.muscleGroup].push({ name: cx.name, custom: true, customId: cx.id });
   }
   // Also include exercises from workout history that have no group
   var ungrouped = [];
@@ -3540,6 +3537,15 @@ async function renderExercises(el) {
   }
 
   let rows = '';
+  // Custom exercises at the top as their own section
+  if (customExercises.length) {
+    rows += '<div class="ex-group-header" data-group="Meine Übungen">Meine Übungen</div>'
+      + '<div class="ex-group-body">'
+      + customExercises.map(function(cx) {
+          return makeExRow({ name: cx.name, custom: true, customId: cx.id });
+        }).join('')
+      + '</div>';
+  }
   for (const [group, items] of Object.entries(groupMap)) {
     if (!items.length) continue;
     rows += '<div class="ex-group-header" data-group="' + esc(group) + '">' + esc(group) + '</div>'
