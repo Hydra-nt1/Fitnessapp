@@ -2397,10 +2397,10 @@ async function renderTagDetail(el, dayKey, weekOffset) {
         + 'placeholder="' + placeholder + '" '
         + 'oninput="tagExFilter(this.value,' + planId + ',\'' + dayKey + '\',\'' + mg + '\',' + weekOffset + ')" '
         + 'onfocus="tagExFilter(this.value,' + planId + ',\'' + dayKey + '\',\'' + mg + '\',' + weekOffset + ')" '
-        + 'onblur="setTimeout(function(){var r=document.getElementById(\'tag-ex-results-' + planId + '\');if(r&&!r.matches(\':focus-within\'))r.innerHTML=\'\'},400)" '
+        + 'onblur="setTimeout(function(){var r=document.getElementById(\'tag-ex-results-' + planId + '\');if(r&&!r.querySelector(\':focus\')&&document.activeElement!==r)r.innerHTML=\'\'},500)" '
         + 'autocomplete="off">'
         + '</div>'
-        + '<div id="tag-ex-results-' + planId + '" onmousedown="event.preventDefault()" ontouchstart="event.stopPropagation()"></div>'
+        + '<div id="tag-ex-results-' + planId + '" tabindex="-1"></div>'
         + '</div>';
 
       planSections += sectionHeader
