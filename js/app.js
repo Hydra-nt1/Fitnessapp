@@ -3943,6 +3943,14 @@ async function renderProfile(el) {
     + '<button class="btn btn-ghost" style="width:100%" onclick="resetPin()">PIN zurücksetzen</button>'
     + '</div>';
 
+  // ── Geräte-Sync ──
+  html += '<div class="section-title">Geräte synchronisieren</div>'
+    + '<div class="card" style="margin-bottom:16px">'
+    + '<p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px">Sync-Code: <strong style="color:var(--text)">' + (getSyncCode() || 'nicht eingerichtet') + '</strong></p>'
+    + '<button class="btn btn-primary" style="width:100%" onclick="showSyncSheet()">'
+    + '🔄 Sync einrichten / synchronisieren</button>'
+    + '</div>';
+
   // ── Datensicherung ──
   html += '<div class="section-title">Datensicherung</div>'
     + '<div class="card" style="margin-bottom:32px;display:flex;flex-direction:column;gap:10px">'
@@ -4500,6 +4508,91 @@ window.coachSend = async function() {
   renderCoach(document.getElementById('content-inner'));
   var msgsEl = document.getElementById('coach-messages');
   if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+};
+
+// ── Supabase Sync ─────────────────────────────────────────────
+
+var _SB_URL = 'https://lambfcrvsvejmrabjspo.supabase.co';
+var _SB_KEY = ['sb_publishable_VlcBmspTvDs', 'I2Rh4OaR2RA_zbI2UA9E'].join('');
+var _SYNC_STORES = ['plans','planExercises','workoutSessions','workoutSets','bodyStats','weekPlan','customExercises','weekExercises'];
+
+function getSyncCode() { return localStorage.getItem('fittracker_sync_code') || ''; }
+
+async function syncExport() {
+  var code = getSyncCode();
+  if (!code) return false;
+  var backup = { profile: localStorage.getItem('fittracker_profile') || '{}', theme: localStorage.getItem('fittracker_theme') || 'dark' };
+  for (var s of _SYNC_STORES) { try { backup[s] = await dbGetAll(s); } catch(e) { backup[s] = []; } }
+  var resp = await fetch(_SB_URL + '/rest/v1/user_data', {
+    method: 'POST',
+    headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ sync_code: code, data: backup, updated_at: new Date().toISOString() })
+  });
+  return resp.ok;
+}
+
+async function syncImport() {
+  var code = getSyncCode();
+  if (!code) return false;
+  var resp = await fetch(_SB_URL + '/rest/v1/user_data?sync_code=eq.' + encodeURIComponent(code) + '&select=data', {
+    headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY }
+  });
+  if (!resp.ok) return false;
+  var rows = await resp.json();
+  if (!rows || !rows.length) return false;
+  var backup = rows[0].data;
+  if (backup.profile) localStorage.setItem('fittracker_profile', backup.profile);
+  if (backup.theme) { localStorage.setItem('fittracker_theme', backup.theme); applyTheme(backup.theme); }
+  for (var storeName of _SYNC_STORES) {
+    if (!Array.isArray(backup[storeName])) continue;
+    await new Promise(function(resolve, reject) {
+      var tx = _db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).clear();
+      tx.oncomplete = resolve; tx.onerror = function() { reject(tx.error); };
+    });
+    for (var item of backup[storeName]) { await dbPut(storeName, item); }
+  }
+  return true;
+}
+
+window.showSyncSheet = function() {
+  var current = getSyncCode();
+  var ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = '<div class="profil-sheet" style="max-width:420px">'
+    + '<div class="profil-sheet-handle"></div>'
+    + '<div class="profil-sheet-title">Geräte synchronisieren</div>'
+    + '<div class="pfs-body">'
+    + '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 6px">Wähle einen persönlichen Sync-Code (z.B. deinen Namen). Derselbe Code auf allen Geräten = dieselben Daten.</p>'
+    + '<input id="sync-code-input" type="text" class="coach-input" style="width:100%;border-radius:10px;padding:12px;font-size:0.9rem;margin-bottom:12px" placeholder="Dein Sync-Code…" value="' + escHtml(current) + '">'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="pfs-save" style="flex:1" onclick="doSync(\'export\')">💾 Hochladen</button>'
+    + '<button class="pfs-save" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="doSync(\'import\')">📥 Herunterladen</button>'
+    + '</div>'
+    + '<p id="sync-status" style="font-size:0.8rem;color:var(--muted);margin:10px 0 0;text-align:center"></p>'
+    + '</div>'
+    + '<div class="pfs-actions"><button class="pfs-cancel" onclick="this.closest(\'.modal-overlay\').remove()">Schließen</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
+};
+
+window.doSync = async function(direction) {
+  var inp = document.getElementById('sync-code-input');
+  var code = inp ? inp.value.trim() : '';
+  if (!code) { document.getElementById('sync-status').textContent = '⚠️ Bitte Sync-Code eingeben.'; return; }
+  localStorage.setItem('fittracker_sync_code', code);
+  var status = document.getElementById('sync-status');
+  status.textContent = '⏳ Wird synchronisiert…';
+  var ok;
+  if (direction === 'export') {
+    ok = await syncExport();
+    status.textContent = ok ? '✅ Daten hochgeladen!' : '❌ Fehler beim Hochladen.';
+  } else {
+    ok = await syncImport();
+    status.textContent = ok ? '✅ Daten heruntergeladen! App wird neu geladen…' : '❌ Kein Eintrag für diesen Code gefunden.';
+    if (ok) setTimeout(function() { location.reload(); }, 1500);
+  }
 };
 
 // ── Boot ──────────────────────────────────────────────────────
