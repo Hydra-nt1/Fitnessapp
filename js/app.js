@@ -3537,27 +3537,30 @@ async function renderExercises(el) {
   }
 
   let rows = '';
-  // Custom exercises at the top as their own section
-  if (customExercises.length) {
-    rows += '<div class="ex-group-header" data-group="Meine Übungen">Meine Übungen</div>'
-      + '<div class="ex-group-body">'
-      + customExercises.map(function(cx) {
-          return makeExRow({ name: cx.name, custom: true, customId: cx.id });
-        }).join('')
+  function makeGroupSection(label, itemsHtml, open) {
+    var id = 'exg-' + label.replace(/[^a-z0-9]/gi, '_');
+    return '<div class="ex-group-header ex-group-toggle' + (open ? ' open' : '') + '" data-group="' + esc(label) + '" onclick="toggleExGroup(\'' + id + '\',this)">'
+      + '<span>' + esc(label) + '</span>'
+      + '<svg class="ex-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div class="ex-group-body" id="' + id + '" style="' + (open ? '' : 'display:none') + '">'
+      + itemsHtml
       + '</div>';
+  }
+
+  // Custom exercises at the top, open by default
+  if (customExercises.length) {
+    rows += makeGroupSection('Meine Übungen',
+      customExercises.map(function(cx) {
+        return makeExRow({ name: cx.name, custom: true, customId: cx.id });
+      }).join(''), true);
   }
   for (const [group, items] of Object.entries(groupMap)) {
     if (!items.length) continue;
-    rows += '<div class="ex-group-header" data-group="' + esc(group) + '">' + esc(group) + '</div>'
-      + '<div class="ex-group-body">'
-      + items.map(makeExRow).join('')
-      + '</div>';
+    rows += makeGroupSection(group, items.map(makeExRow).join(''), false);
   }
   if (ungrouped.length) {
-    rows += '<div class="ex-group-header" data-group="Sonstige">Sonstige</div>'
-      + '<div class="ex-group-body">'
-      + ungrouped.map(makeExRow).join('')
-      + '</div>';
+    rows += makeGroupSection('Sonstige', ungrouped.map(makeExRow).join(''), false);
   }
 
   el.innerHTML = '<div class="page-header" style="display:flex;align-items:center;justify-content:space-between">'
@@ -3614,6 +3617,14 @@ function hideLibraryExercise(name) {
   go('uebungen');
 }
 
+function toggleExGroup(id, header) {
+  var body = document.getElementById(id);
+  if (!body) return;
+  var open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  header.classList.toggle('open', open);
+}
+
 function filterExerciseList(query) {
   const list = document.getElementById('ex-page-list');
   if (!list) return;
@@ -3629,7 +3640,10 @@ function filterExerciseList(query) {
       if (show) hasVisible = true;
     });
     if (header) header.style.display = hasVisible ? '' : 'none';
-    body.style.display = hasVisible ? '' : 'none';
+    // Auto-expand groups that have matches when searching
+    if (hasVisible && q) body.style.display = '';
+    else if (!q) {} // keep current toggle state
+    else body.style.display = 'none';
   });
 }
 

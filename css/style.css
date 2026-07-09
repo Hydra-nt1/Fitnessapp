@@ -949,6 +949,20 @@ html, body {
   margin-bottom: 2px;
 }
 .ex-group-header:first-child { padding-top: 4px; }
+.ex-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.ex-toggle-icon {
+  flex-shrink: 0;
+  transition: transform .2s;
+  transform: rotate(-90deg);
+  color: var(--muted);
+}
+.ex-group-toggle.open .ex-toggle-icon { transform: rotate(0deg); }
 .ex-group-body { margin-bottom: 4px; }
 
 .ex-custom-badge {
