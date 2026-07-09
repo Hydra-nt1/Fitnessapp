@@ -2468,28 +2468,33 @@ function buildRecommendedSuggestions(plan, existingExercises, dayKey) {
 // Maps a plan muscleGroup value to the matching EXERCISE_LIBRARY keys
 function getMuscleLibraryGroups(muscleGroup) {
   var map = {
-    // Brust-basierte Pläne → Brust + Schultern + Trizeps
-    'Brust':            ['Brust', 'Schultern', 'Trizeps'],
+    // Push
+    'Push Day':         ['Brust', 'Schultern', 'Trizeps'],
     'Push':             ['Brust', 'Schultern', 'Trizeps'],
+    'Brust':            ['Brust', 'Schultern', 'Trizeps'],
+    'Brust & Trizeps':  ['Brust', 'Trizeps', 'Schultern'],
 
-    // Rücken-basierte Pläne → Rücken + Bizeps
-    'Rücken':           ['Rücken', 'Bizeps'],
+    // Pull
+    'Pull Day':         ['Rücken', 'Bizeps'],
     'Pull':             ['Rücken', 'Bizeps'],
+    'Rücken':           ['Rücken', 'Bizeps'],
+    'Rücken & Bizeps':  ['Rücken', 'Bizeps'],
 
-    // Schultern → Schultern + Bizeps + Trizeps (Arme gehören dazu)
+    // Schultern & Arme
     'Schultern':        ['Schultern', 'Bizeps', 'Trizeps', 'Unterarme'],
     'Schultern & Arme': ['Schultern', 'Bizeps', 'Trizeps', 'Unterarme'],
-
-    // Arme → Bizeps + Trizeps + Unterarme
     'Arme':             ['Bizeps', 'Trizeps', 'Unterarme'],
     'Bizeps':           ['Bizeps', 'Unterarme'],
-    'Trizeps':          ['Trizeps'],
+    'Trizeps':          ['Trizeps', 'Unterarme'],
 
-    // Beine → alle Beingruppen + Waden
+    // Beine
     'Beine':            ['Beine — Quadrizeps', 'Beine — Hamstrings & Gesäß', 'Waden'],
+    'Beine & Gesäß':    ['Beine — Hamstrings & Gesäß', 'Beine — Quadrizeps', 'Waden'],
 
     // Bauch / Core
     'Bauch':            ['Bauch & Core'],
+    'Bauch & Core':     ['Bauch & Core'],
+    'Bauch Intensiv':   ['Bauch & Core'],
     'Core':             ['Bauch & Core'],
 
     // Ganzkörper → alles außer Cardio/Dehnen
