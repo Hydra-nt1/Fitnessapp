@@ -2511,7 +2511,14 @@ function getMuscleLibraryGroups(muscleGroup) {
     // Dehnen
     'Dehnen':           ['Dehnen & Mobility'],
   };
-  if (map[muscleGroup]) return map[muscleGroup];
+  if (map[muscleGroup]) {
+    var mapped = map[muscleGroup];
+    // Also include any custom exercises stored directly under this key
+    if (EXERCISE_LIBRARY[muscleGroup] && !mapped.includes(muscleGroup)) {
+      mapped = mapped.concat([muscleGroup]);
+    }
+    return mapped;
+  }
   if (EXERCISE_LIBRARY[muscleGroup]) return [muscleGroup];
   return null; // kein Match → alle Übungen durchsuchen
 }
