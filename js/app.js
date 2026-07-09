@@ -3447,8 +3447,11 @@ async function renderExercises(el) {
   const customMap = {};
   for (const cx of customExercises) customMap[cx.name] = { id: cx.id, muscleGroup: cx.muscleGroup, custom: true };
 
-  // Group selector options
-  var groupOptions = Object.keys(EXERCISE_LIBRARY).map(function(g) {
+  // Group selector options — aligned with training plans
+  var _exGroups = ['Push Day','Pull Day','Beine','Schultern & Arme','Upper Body','Ganzkörper',
+    'Brust & Trizeps','Rücken & Bizeps','Bauch','Bauch & Core','Bauch Intensiv','Cardio',
+    'Beine & Gesäß','Schultern','Arme'];
+  var groupOptions = _exGroups.map(function(g) {
     return '<option value="' + esc(g) + '">' + esc(g) + '</option>';
   }).join('');
 
