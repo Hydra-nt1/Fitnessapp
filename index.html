@@ -146,8 +146,8 @@
       <button class="auth-tab" id="tab-signup" onclick="authShowTab('signup')">Registrieren</button>
     </div>
     <div id="auth-form">
-      <input id="auth-email" type="email" placeholder="E-Mail" autocomplete="email" class="auth-input">
-      <input id="auth-password" type="password" placeholder="Passwort" autocomplete="current-password" class="auth-input">
+      <input id="auth-email" type="email" placeholder="E-Mail" autocomplete="email" class="auth-input" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+      <input id="auth-password" type="password" placeholder="Passwort" autocomplete="current-password" class="auth-input" onkeydown="if(event.key==='Enter')authSubmit()">
       <div id="auth-error"></div>
       <button id="auth-submit-btn" class="auth-btn" onclick="authSubmit()">Anmelden</button>
       <button id="auth-forgot-btn" class="auth-link" onclick="authForgot()">Passwort vergessen?</button>
