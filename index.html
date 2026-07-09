@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app">
@@ -136,35 +137,20 @@
 
 </div>
 
-<!-- PIN Lock Overlay -->
-<div id="pin-overlay">
-  <div id="pin-box">
-    <div id="pin-logo">FitTracker</div>
-    <div id="pin-title">PIN eingeben</div>
-    <div id="pin-dots">
-      <span class="pin-dot" id="pd0"></span>
-      <span class="pin-dot" id="pd1"></span>
-      <span class="pin-dot" id="pd2"></span>
-      <span class="pin-dot" id="pd3"></span>
+<!-- Auth Overlay -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <div id="auth-logo">💪 FitTracker</div>
+    <div id="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="authShowTab('login')">Anmelden</button>
+      <button class="auth-tab" id="tab-signup" onclick="authShowTab('signup')">Registrieren</button>
     </div>
-    <div id="pin-error"></div>
-    <div id="pin-pad">
-      <button class="pin-key" onclick="pinKey('1')">1</button>
-      <button class="pin-key" onclick="pinKey('2')">2</button>
-      <button class="pin-key" onclick="pinKey('3')">3</button>
-      <button class="pin-key" onclick="pinKey('4')">4</button>
-      <button class="pin-key" onclick="pinKey('5')">5</button>
-      <button class="pin-key" onclick="pinKey('6')">6</button>
-      <button class="pin-key" onclick="pinKey('7')">7</button>
-      <button class="pin-key" onclick="pinKey('8')">8</button>
-      <button class="pin-key" onclick="pinKey('9')">9</button>
-      <button class="pin-key pin-key-empty"></button>
-      <button class="pin-key" onclick="pinKey('0')">0</button>
-      <button class="pin-key pin-key-del" onclick="pinDel()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
-        </svg>
-      </button>
+    <div id="auth-form">
+      <input id="auth-email" type="email" placeholder="E-Mail" autocomplete="email" class="auth-input">
+      <input id="auth-password" type="password" placeholder="Passwort" autocomplete="current-password" class="auth-input">
+      <div id="auth-error"></div>
+      <button id="auth-submit-btn" class="auth-btn" onclick="authSubmit()">Anmelden</button>
+      <button id="auth-forgot-btn" class="auth-link" onclick="authForgot()">Passwort vergessen?</button>
     </div>
   </div>
 </div>

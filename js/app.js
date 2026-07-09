@@ -1,134 +1,92 @@
-// ── PIN Lock ───────────────────────────────────────────────────
+// ── Supabase Auth ─────────────────────────────────────────────
 
-(function() {
-  var PIN_KEY = 'fittracker_pin';
-  var MODE_KEY = 'fittracker_pin_mode';
-  var INVITE_KEY = 'fittracker_invited';
-  var INVITE_CODE = 'FIT2026';
-  var entered = '';
-  var inviteEntered = '';
+var _supabase = window.supabase.createClient(
+  'https://lambfcrvsvejmrabjspo.supabase.co',
+  ['sb_publishable_VlcBmspTvDs', 'I2Rh4OaR2RA_zbI2UA9E'].join('')
+);
+var _currentUser = null;
+var _saveTimer = null;
 
-  function updateDots() {
-    for (var i = 0; i < 4; i++) {
-      var dot = document.getElementById('pd' + i);
-      if (dot) dot.classList.toggle('filled', i < entered.length);
-    }
+var _authMode = 'login';
+
+window.authShowTab = function(mode) {
+  _authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-submit-btn').textContent = mode === 'login' ? 'Anmelden' : 'Registrieren';
+  document.getElementById('auth-forgot-btn').style.display = mode === 'login' ? '' : 'none';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+};
+
+window.authSubmit = async function() {
+  var email = (document.getElementById('auth-email').value || '').trim();
+  var password = document.getElementById('auth-password').value || '';
+  var errEl = document.getElementById('auth-error');
+  var btn = document.getElementById('auth-submit-btn');
+  if (!email || !password) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; return; }
+  btn.disabled = true;
+  btn.textContent = '…';
+  errEl.textContent = '';
+  var result;
+  if (_authMode === 'login') {
+    result = await _supabase.auth.signInWithPassword({ email: email, password: password });
+  } else {
+    result = await _supabase.auth.signUp({ email: email, password: password });
   }
-
-  function setError(msg) {
-    var el = document.getElementById('pin-error');
-    if (el) el.textContent = msg;
+  if (result.error) {
+    errEl.textContent = result.error.message;
+    btn.disabled = false;
+    btn.textContent = _authMode === 'login' ? 'Anmelden' : 'Registrieren';
+    return;
   }
-
-  function setTitle(msg) {
-    var el = document.getElementById('pin-title');
-    if (el) el.textContent = msg;
+  if (_authMode === 'signup' && result.data && !result.data.session) {
+    errEl.style.color = '#4ade80';
+    errEl.textContent = 'Bestätigungsmail gesendet! Bitte E-Mail bestätigen.';
+    btn.disabled = false;
+    btn.textContent = 'Registrieren';
+    return;
   }
+  _currentUser = result.data.user;
+  await onLogin();
+};
 
-  function unlock() {
-    var overlay = document.getElementById('pin-overlay');
-    if (overlay) {
-      overlay.classList.add('hidden');
-      setTimeout(function() { overlay.style.display = 'none'; }, 350);
-    }
-  }
+window.authForgot = async function() {
+  var email = (document.getElementById('auth-email').value || '').trim();
+  if (!email) { document.getElementById('auth-error').textContent = 'Bitte E-Mail eingeben.'; return; }
+  await _supabase.auth.resetPasswordForEmail(email);
+  document.getElementById('auth-error').style.color = '#4ade80';
+  document.getElementById('auth-error').textContent = 'Reset-Link wurde gesendet!';
+};
 
-  function showInviteScreen() {
-    document.getElementById('pin-dots').style.display = 'none';
-    document.getElementById('pin-pad').style.display = 'none';
-    document.getElementById('pin-title').textContent = 'Einladungscode eingeben';
-    var box = document.getElementById('pin-box');
-    var invDiv = document.createElement('div');
-    invDiv.id = 'invite-wrap';
-    invDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;width:100%';
-    invDiv.innerHTML =
-      '<input id="invite-input" type="text" placeholder="Code" autocomplete="off" ' +
-      'style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;' +
-      'color:var(--text);font-size:16px;font-family:Inter,sans-serif;padding:12px 16px;' +
-      'width:100%;text-align:center;letter-spacing:2px;outline:none;" />' +
-      '<button onclick="submitInvite()" ' +
-      'style="background:var(--blue);color:#fff;border:none;border-radius:10px;' +
-      'padding:12px 32px;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;width:100%">' +
-      'Bestätigen</button>';
-    box.appendChild(invDiv);
-  }
+function showAuthOverlay() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) { ov.style.display = 'flex'; }
+}
 
-  window.submitInvite = function() {
-    var val = (document.getElementById('invite-input').value || '').trim().toUpperCase();
-    if (val === INVITE_CODE) {
-      localStorage.setItem(INVITE_KEY, '1');
-      document.getElementById('invite-wrap').remove();
-      document.getElementById('pin-dots').style.display = '';
-      document.getElementById('pin-pad').style.display = '';
-      setTitle('PIN wählen');
-      setError('');
-    } else {
-      setError('Ungültiger Code');
-    }
-  };
+function hideAuthOverlay() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) { ov.style.display = 'none'; }
+}
 
-  function handlePin() {
-    var stored = localStorage.getItem(PIN_KEY);
-    var mode = localStorage.getItem(MODE_KEY);
+async function onLogin() {
+  hideAuthOverlay();
+  await openDB();
+  await cloudLoad();
+  await seedDefaultPlans();
+  await loadCustomExercisesIntoLibrary();
+  setupNav();
+  go('heute');
+  startAutoSave();
+}
 
-    if (!stored) {
-      if (mode === 'confirm') {
-        if (entered === localStorage.getItem(PIN_KEY + '_tmp')) {
-          localStorage.setItem(PIN_KEY, entered);
-          localStorage.removeItem(MODE_KEY);
-          localStorage.removeItem(PIN_KEY + '_tmp');
-          unlock();
-        } else {
-          setError('PIN stimmt nicht überein');
-          entered = '';
-          localStorage.removeItem(MODE_KEY);
-          localStorage.removeItem(PIN_KEY + '_tmp');
-          setTitle('PIN wählen');
-          updateDots();
-        }
-      } else {
-        localStorage.setItem(PIN_KEY + '_tmp', entered);
-        localStorage.setItem(MODE_KEY, 'confirm');
-        setTitle('PIN bestätigen');
-        setError('');
-        entered = '';
-        updateDots();
-      }
-    } else {
-      if (entered === stored) {
-        unlock();
-      } else {
-        setError('Falscher PIN');
-        entered = '';
-        updateDots();
-      }
-    }
-  }
-
-  window.pinKey = function(digit) {
-    if (entered.length >= 4) return;
-    entered += digit;
-    updateDots();
-    if (entered.length === 4) handlePin();
-  };
-
-  window.pinDel = function() {
-    entered = entered.slice(0, -1);
-    updateDots();
-    setError('');
-  };
-
-  // Init
-  var stored = localStorage.getItem(PIN_KEY);
-  var invited = localStorage.getItem(INVITE_KEY);
-  if (!stored) {
-    if (!invited) {
-      showInviteScreen();
-    } else {
-      setTitle('PIN wählen');
-    }
-  }
-})();
+window.authLogout = async function() {
+  await cloudSave();
+  await _supabase.auth.signOut();
+  _currentUser = null;
+  if (_saveTimer) clearInterval(_saveTimer);
+  location.reload();
+};
 
 // ── Theme ─────────────────────────────────────────────────────
 
@@ -1586,11 +1544,15 @@ async function seedDefaultPlans() {
 // ── Init ──────────────────────────────────────────────────────
 
 async function init() {
-  await openDB();
-  await seedDefaultPlans();
-  await loadCustomExercisesIntoLibrary();
-  setupNav();
-  go('heute');
+  var t = localStorage.getItem('fittracker_theme') || 'dark';
+  if (t !== 'dark') document.documentElement.setAttribute('data-theme', t);
+  showAuthOverlay();
+  var sessionResult = await _supabase.auth.getSession();
+  var session = sessionResult.data && sessionResult.data.session;
+  if (session && session.user) {
+    _currentUser = session.user;
+    await onLogin();
+  }
 }
 
 // Merges saved custom exercises into EXERCISE_LIBRARY and EXERCISE_MUSCLE
@@ -3136,6 +3098,7 @@ async function finishWorkout() {
   session.duration = duration;
   session.completed = true;
   await dbPut('workoutSessions', session);
+  scheduleSave();
 
   const prs = await checkPRs(exercises, sessionId);
   clearInterval(mainTimerInterval);
@@ -3829,6 +3792,7 @@ function saveProfileField(key, value) {
   var p = getProfileData();
   p[key] = value;
   localStorage.setItem('fittracker_profile', JSON.stringify(p));
+  scheduleSave();
 }
 function calcBMI(weight, height) {
   if (!weight || !height) return null;
@@ -3943,12 +3907,13 @@ async function renderProfile(el) {
     + '<button class="btn btn-ghost" style="width:100%" onclick="resetPin()">PIN zurücksetzen</button>'
     + '</div>';
 
-  // ── Geräte-Sync ──
-  html += '<div class="section-title">Geräte synchronisieren</div>'
+  // ── Account ──
+  var userEmail = _currentUser ? _currentUser.email : '';
+  html += '<div class="section-title">Account</div>'
     + '<div class="card" style="margin-bottom:16px">'
-    + '<p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px">Sync-Code: <strong style="color:var(--text)">' + (getSyncCode() || 'nicht eingerichtet') + '</strong></p>'
-    + '<button class="btn btn-primary" style="width:100%" onclick="showSyncSheet()">'
-    + '🔄 Sync einrichten / synchronisieren</button>'
+    + '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 10px">Angemeldet als <strong style="color:var(--text)">' + escHtml(userEmail) + '</strong></p>'
+    + '<p style="font-size:0.8rem;color:#4ade80;margin:0 0 10px">✅ Daten werden automatisch synchronisiert</p>'
+    + '<button class="btn btn-ghost" style="width:100%;color:#f87171" onclick="authLogout()">Abmelden</button>'
     + '</div>';
 
   // ── Datensicherung ──
@@ -4510,37 +4475,23 @@ window.coachSend = async function() {
   if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
 };
 
-// ── Supabase Sync ─────────────────────────────────────────────
+// ── Cloud Sync ────────────────────────────────────────────────
 
-var _SB_URL = 'https://lambfcrvsvejmrabjspo.supabase.co';
-var _SB_KEY = ['sb_publishable_VlcBmspTvDs', 'I2Rh4OaR2RA_zbI2UA9E'].join('');
 var _SYNC_STORES = ['plans','planExercises','workoutSessions','workoutSets','bodyStats','weekPlan','customExercises','weekExercises'];
 
-function getSyncCode() { return localStorage.getItem('fittracker_sync_code') || ''; }
-
-async function syncExport() {
-  var code = getSyncCode();
-  if (!code) return false;
-  var backup = { profile: localStorage.getItem('fittracker_profile') || '{}', theme: localStorage.getItem('fittracker_theme') || 'dark' };
-  for (var s of _SYNC_STORES) { try { backup[s] = await dbGetAll(s); } catch(e) { backup[s] = []; } }
-  var resp = await fetch(_SB_URL + '/rest/v1/user_data', {
-    method: 'POST',
-    headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-    body: JSON.stringify({ sync_code: code, data: backup, updated_at: new Date().toISOString() })
-  });
-  return resp.ok;
+async function cloudSave() {
+  if (!_currentUser) return;
+  var data = { profile: localStorage.getItem('fittracker_profile') || '{}', theme: localStorage.getItem('fittracker_theme') || 'dark' };
+  for (var s of _SYNC_STORES) { try { data[s] = await dbGetAll(s); } catch(e) { data[s] = []; } }
+  await _supabase.from('profiles').upsert({ id: _currentUser.id, data: data, updated_at: new Date().toISOString() });
 }
 
-async function syncImport() {
-  var code = getSyncCode();
-  if (!code) return false;
-  var resp = await fetch(_SB_URL + '/rest/v1/user_data?sync_code=eq.' + encodeURIComponent(code) + '&select=data', {
-    headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY }
-  });
-  if (!resp.ok) return false;
-  var rows = await resp.json();
-  if (!rows || !rows.length) return false;
-  var backup = rows[0].data;
+async function cloudLoad() {
+  if (!_currentUser) return;
+  var result = await _supabase.from('profiles').select('data').eq('id', _currentUser.id).single();
+  if (!result.data) return;
+  var backup = result.data.data;
+  if (!backup) return;
   if (backup.profile) localStorage.setItem('fittracker_profile', backup.profile);
   if (backup.theme) { localStorage.setItem('fittracker_theme', backup.theme); applyTheme(backup.theme); }
   for (var storeName of _SYNC_STORES) {
@@ -4552,48 +4503,16 @@ async function syncImport() {
     });
     for (var item of backup[storeName]) { await dbPut(storeName, item); }
   }
-  return true;
 }
 
-window.showSyncSheet = function() {
-  var current = getSyncCode();
-  var ov = document.createElement('div');
-  ov.className = 'modal-overlay';
-  ov.innerHTML = '<div class="profil-sheet" style="max-width:420px">'
-    + '<div class="profil-sheet-handle"></div>'
-    + '<div class="profil-sheet-title">Geräte synchronisieren</div>'
-    + '<div class="pfs-body">'
-    + '<p style="font-size:0.85rem;color:var(--muted);margin:0 0 6px">Wähle einen persönlichen Sync-Code (z.B. deinen Namen). Derselbe Code auf allen Geräten = dieselben Daten.</p>'
-    + '<input id="sync-code-input" type="text" class="coach-input" style="width:100%;border-radius:10px;padding:12px;font-size:0.9rem;margin-bottom:12px" placeholder="Dein Sync-Code…" value="' + escHtml(current) + '">'
-    + '<div style="display:flex;gap:8px">'
-    + '<button class="pfs-save" style="flex:1" onclick="doSync(\'export\')">💾 Hochladen</button>'
-    + '<button class="pfs-save" style="flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="doSync(\'import\')">📥 Herunterladen</button>'
-    + '</div>'
-    + '<p id="sync-status" style="font-size:0.8rem;color:var(--muted);margin:10px 0 0;text-align:center"></p>'
-    + '</div>'
-    + '<div class="pfs-actions"><button class="pfs-cancel" onclick="this.closest(\'.modal-overlay\').remove()">Schließen</button></div>'
-    + '</div>';
-  document.body.appendChild(ov);
-  ov.addEventListener('click', function(e) { if (e.target === ov) ov.remove(); });
-};
+function scheduleSave() {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(cloudSave, 5000);
+}
 
-window.doSync = async function(direction) {
-  var inp = document.getElementById('sync-code-input');
-  var code = inp ? inp.value.trim() : '';
-  if (!code) { document.getElementById('sync-status').textContent = '⚠️ Bitte Sync-Code eingeben.'; return; }
-  localStorage.setItem('fittracker_sync_code', code);
-  var status = document.getElementById('sync-status');
-  status.textContent = '⏳ Wird synchronisiert…';
-  var ok;
-  if (direction === 'export') {
-    ok = await syncExport();
-    status.textContent = ok ? '✅ Daten hochgeladen!' : '❌ Fehler beim Hochladen.';
-  } else {
-    ok = await syncImport();
-    status.textContent = ok ? '✅ Daten heruntergeladen! App wird neu geladen…' : '❌ Kein Eintrag für diesen Code gefunden.';
-    if (ok) setTimeout(function() { location.reload(); }, 1500);
-  }
-};
+function startAutoSave() {
+  setInterval(cloudSave, 120000);
+}
 
 // ── Boot ──────────────────────────────────────────────────────
 

@@ -2634,3 +2634,21 @@ canvas.chart { display: block; width: 100%; }
 .coach-key-btn { background: #fbbf24; color: #000; border: none; border-radius: 8px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .coach-key-set { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 .coach-key-change { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer; }
+
+/* ── Auth Overlay ─────────────────────────────────────────────── */
+#auth-overlay { position:fixed;inset:0;background:#0d0d12;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px; }
+#auth-box { background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:20px; }
+#auth-logo { font-size:1.6rem;font-weight:800;color:var(--text);text-align:center; }
+#auth-tabs { display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px; }
+.auth-tab { flex:1;padding:8px;border:none;background:none;color:var(--muted);font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;font-family:inherit;transition:all 0.15s; }
+.auth-tab.active { background:var(--accent);color:#fff; }
+#auth-form { display:flex;flex-direction:column;gap:12px; }
+.auth-input { background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:13px 16px;font-size:0.95rem;font-family:inherit;outline:none;width:100%;box-sizing:border-box; }
+.auth-input:focus { border-color:var(--accent); }
+.auth-input::placeholder { color:var(--muted); }
+#auth-error { font-size:0.82rem;color:#f87171;min-height:18px;text-align:center; }
+.auth-btn { background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer;width:100%;transition:opacity 0.15s; }
+.auth-btn:hover { opacity:0.88; }
+.auth-btn:disabled { opacity:0.5;cursor:not-allowed; }
+.auth-link { background:none;border:none;color:var(--muted);font-size:0.82rem;cursor:pointer;font-family:inherit;text-align:center;padding:4px; }
+.auth-link:hover { color:var(--text); }
