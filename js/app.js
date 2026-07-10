@@ -3365,12 +3365,110 @@ function selectStatDay(dayKey) {
   renderHistory(document.getElementById('content-inner'));
 }
 
+function makeHeatmapSection(sessions) {
+  const WEEKS = 16;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // start at monday of the week 16 weeks ago
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - (today.getDay() || 7) + 1 - (WEEKS - 1) * 7);
+
+  // build set of day-timestamps with sessions
+  const sessionDays = {};
+  for (const s of sessions) {
+    const d = new Date(s.startedAt);
+    d.setHours(0, 0, 0, 0);
+    sessionDays[d.getTime()] = (sessionDays[d.getTime()] || 0) + 1;
+  }
+
+  const CELL = 14, GAP = 3, LABEL_W = 22;
+  const totalW = LABEL_W + WEEKS * (CELL + GAP);
+  const totalH = 7 * (CELL + GAP) + 20;
+
+  const DAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So'];
+  let cells = '';
+  // day-of-week labels
+  for (let d = 0; d < 7; d++) {
+    if (DAY_LABELS[d]) {
+      cells += '<text x="0" y="' + (d * (CELL + GAP) + CELL - 2 + 16) + '" font-size="9" fill="var(--muted)" text-anchor="start">' + DAY_LABELS[d] + '</text>';
+    }
+  }
+
+  // month labels + cells
+  let lastMonth = -1;
+  for (let w = 0; w < WEEKS; w++) {
+    const wx = LABEL_W + w * (CELL + GAP);
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + w * 7 + d);
+      if (date > today) continue;
+      const ts = date.getTime();
+      const hasSess = sessionDays[ts] || 0;
+      const month = date.getMonth();
+      if (month !== lastMonth && d === 0) {
+        const mNames = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+        cells += '<text x="' + wx + '" y="12" font-size="9" fill="var(--muted)">' + mNames[month] + '</text>';
+        lastMonth = month;
+      }
+      const wy = 16 + d * (CELL + GAP);
+      const fill = hasSess ? '#4f7ef8' : 'var(--surface2)';
+      const opacity = hasSess ? '1' : '1';
+      cells += '<rect x="' + wx + '" y="' + wy + '" width="' + CELL + '" height="' + CELL + '" rx="3" fill="' + fill + '" opacity="' + opacity + '"/>';
+    }
+  }
+
+  const totalWorkouts = sessions.length;
+  const streak = calcStreak(sessions);
+
+  return '<div class="stat-card" style="margin-bottom:16px">'
+    + '<div class="stat-card-title">Trainingsfrequenz</div>'
+    + '<div style="display:flex;gap:16px;margin-bottom:12px">'
+    + '<div class="summary-stat" style="flex:1"><div class="summary-stat-value">' + totalWorkouts + '</div><div class="summary-stat-label">Workouts gesamt</div></div>'
+    + '<div class="summary-stat" style="flex:1"><div class="summary-stat-value">' + streak + '</div><div class="summary-stat-label">Aktuelle Serie (Tage)</div></div>'
+    + '</div>'
+    + '<div style="overflow-x:auto"><svg viewBox="0 0 ' + totalW + ' ' + totalH + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:' + totalW + 'px;height:' + totalH + 'px">'
+    + cells + '</svg></div>'
+    + '</div>';
+}
+
+function calcStreak(sessions) {
+  if (!sessions.length) return 0;
+  const days = new Set(sessions.map(function(s) {
+    const d = new Date(s.startedAt); d.setHours(0,0,0,0); return d.getTime();
+  }));
+  const today = new Date(); today.setHours(0,0,0,0);
+  let streak = 0, cur = today.getTime();
+  while (days.has(cur)) { streak++; cur -= 86400000; }
+  return streak;
+}
+
+function buildVolumeData(sessions, allSets) {
+  const setsBySession = {};
+  for (const s of allSets) {
+    if (!setsBySession[s.sessionId]) setsBySession[s.sessionId] = [];
+    setsBySession[s.sessionId].push(s);
+  }
+  return sessions
+    .filter(function(s) { return s.completed && setsBySession[s.id]; })
+    .sort(function(a, b) { return a.startedAt - b.startedAt; })
+    .slice(-20)
+    .map(function(s) {
+      const vol = (setsBySession[s.id] || []).reduce(function(sum, set) {
+        return sum + (set.weight || 0) * (set.reps || 0);
+      }, 0);
+      return { x: s.startedAt, y: Math.round(vol) };
+    })
+    .filter(function(d) { return d.y > 0; });
+}
+
 async function renderHistory(el) {
-  const [allWeekEx, allPlanEx, plans, weekPlanEntries] = await Promise.all([
+  const [allWeekEx, allPlanEx, plans, weekPlanEntries, allSessions, allSets] = await Promise.all([
     dbGetAll('weekExercises'),
     dbGetAll('planExercises'),
     dbGetAll('plans'),
-    dbGetAll('weekPlan')
+    dbGetAll('weekPlan'),
+    dbGetAll('workoutSessions'),
+    dbGetAll('workoutSets')
   ]);
 
   const todayKey = getTodayKey();
@@ -3381,6 +3479,21 @@ async function renderHistory(el) {
   for (const e of weekPlanEntries) dayPlanIds[e.day] = getEntryPlanIds(e);
 
   let html = '<div class="page-header"><h1 class="page-title">Statistik</h1></div>';
+
+  // ── Trainingsfrequenz-Heatmap ──
+  const completedSessions = allSessions.filter(function(s) { return s.completed; });
+  if (completedSessions.length > 0) {
+    html += makeHeatmapSection(completedSessions);
+  }
+
+  // ── Volumen-Tracking ──
+  const volumeData = buildVolumeData(completedSessions, allSets);
+  if (volumeData.length > 1) {
+    html += '<div class="stat-card" style="margin-bottom:16px">'
+      + '<div class="stat-card-title">Volumen pro Einheit <span class="stat-subtitle">(kg × Wdh × Sätze)</span></div>'
+      + makeSvgLineChart(volumeData, 'y', '#a78bfa')
+      + '</div>';
+  }
 
   // ── Tag-Selektor ──
   html += '<div class="week-strip" style="margin-bottom:20px">';
