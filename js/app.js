@@ -3254,19 +3254,21 @@ function dismissRest() {
 // ── Statistik ─────────────────────────────────────────────────
 
 function makeSvgLineChart(entries, valueKey, color) {
-  const W = 300, H = 80, pad = 8;
+  const W = 300, H = 90, padT = 18, padB = 8, padX = 8;
   const vals = entries.map(e => e[valueKey]);
   const maxV = Math.max(...vals);
   const minV = Math.min(...vals);
   const range = maxV - minV || 1;
   const n = vals.length;
-  const xs = vals.map((_, i) => pad + (i / (n - 1 || 1)) * (W - pad * 2));
-  const ys = vals.map(v => H - pad - ((v - minV) / range) * (H - pad * 2));
+  const xs = vals.map((_, i) => padX + (i / (n - 1 || 1)) * (W - padX * 2));
+  const ys = vals.map(v => padT + (H - padT - padB) - ((v - minV) / range) * (H - padT - padB));
+  const pad = padX;
 
+  const bottom = H - padB;
   // area fill path
-  let area = 'M' + xs[0] + ',' + H;
+  let area = 'M' + xs[0] + ',' + bottom;
   for (let i = 0; i < n; i++) area += ' L' + xs[i] + ',' + ys[i];
-  area += ' L' + xs[n-1] + ',' + H + ' Z';
+  area += ' L' + xs[n-1] + ',' + bottom + ' Z';
 
   // line path
   let line = 'M' + xs[0] + ',' + ys[0];
@@ -3283,7 +3285,7 @@ function makeSvgLineChart(entries, valueKey, color) {
     dots += '<text x="' + xs[i] + '" y="' + (ys[i] - 6) + '" text-anchor="' + anchor + '" font-size="9" fill="#8e8e9a">' + vals[i] + '</text>';
   }
 
-  return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:80px">'
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:90px">'
     + '<defs><linearGradient id="g' + color.replace('#','') + '" x1="0" y1="0" x2="0" y2="1">'
     + '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.25"/>'
     + '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>'
