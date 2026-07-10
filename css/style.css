@@ -1404,8 +1404,8 @@ canvas.chart { display: block; width: 100%; }
 
 /* ── Fade transition ── */
 
-@keyframes fadeEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.fade-enter { animation: fadeEnter 0.18s ease both; }
+@keyframes fadeEnter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-enter { animation: fadeEnter 0.22s cubic-bezier(0.22,1,0.36,1) both; }
 
 /* ── Heute: today sub-label ── */
 
@@ -2798,3 +2798,12 @@ canvas.chart { display: block; width: 100%; }
 .auth-btn:disabled { opacity:0.5;cursor:not-allowed; }
 .auth-link { background:none;border:none;color:var(--muted);font-size:0.82rem;cursor:pointer;font-family:inherit;text-align:center;padding:4px; }
 .auth-link:hover { color:var(--text); }
+
+/* ── Empty States ── */
+.empty-state { text-align: center; padding: 40px 20px; }
+.empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.85; }
+.empty-state-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.empty-state-sub { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ── Strip Rings ── */
+.strip-ring { display: flex; align-items: center; justify-content: center; }

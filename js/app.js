@@ -1636,7 +1636,7 @@ function go(page) {
   const inner = document.getElementById('content-inner');
   inner.innerHTML = '';
   inner.classList.add('fade-enter');
-  setTimeout(() => inner.classList.remove('fade-enter'), 200);
+  setTimeout(() => inner.classList.remove('fade-enter'), 250);
 
   render(page, inner);
 }
@@ -1807,7 +1807,11 @@ async function renderHeute(el) {
     const isDone = doneDayKeys.has(day.key);
     html += '<div class="strip-day' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + '" onclick="selectDay(\'' + day.key + '\')" title="' + day.label + '">'
       + '<span class="strip-lbl">' + day.short + '</span>'
-      + '<div class="strip-dot' + (isDone ? ' done' : hasPlan ? ' planned' : '') + '"></div>'
+      + (function() {
+    if (isDone) return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/><circle cx="9" cy="9" r="7" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-dasharray="44" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 9 9)"/></svg>';
+    if (hasPlan) return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/><circle cx="9" cy="9" r="7" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-dasharray="44" stroke-dashoffset="33" stroke-linecap="round" transform="rotate(-90 9 9)"/></svg>';
+    return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/></svg>';
+  })()
       + '</div>';
   }
   html += '</div>';
@@ -1835,7 +1839,7 @@ async function renderHeute(el) {
         const exercises = await dbGetAll('planExercises', 'planId', pid);
         const exPreview = exercises.slice(0, 3).map(e => esc(e.name)).join(' · ')
           + (exercises.length > 3 ? ' +' + (exercises.length - 3) + ' weitere' : '');
-        html += '<div class="today-card" style="margin-bottom:8px">'
+        html += '<div class="today-card" style="margin-bottom:8px;border-left:3px solid ' + muscleGroupColor(plan.muscleGroup) + '">'
           + '<div class="today-card-info">'
           + '<div class="today-card-name">' + esc(plan.name) + '</div>'
           + '<div class="today-card-ex">' + exPreview + '</div>'
@@ -2409,6 +2413,7 @@ async function renderTagDetail(el, dayKey, weekOffset) {
       var sectionHeader = '';
       if (activePlanIds.length > 1) {
         sectionHeader = '<div class="tag-plan-section-header">'
+          + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + muscleGroupColor(plan.muscleGroup) + ';margin-right:6px;flex-shrink:0"></span>'
           + '<span class="tag-plan-section-name">' + esc(plan.name) + '</span>'
           + (plan.muscleGroup ? '<span class="tag-plan-section-group">' + esc(plan.muscleGroup) + '</span>' : '')
           + '<button class="btn btn-xs btn-primary" onclick="startWorkout(' + planId + ')">'
@@ -2745,7 +2750,7 @@ async function renderTemplateDetail(el, planId) {
     + '<div class="card">';
 
   if (exs.length === 0) {
-    html += '<div style="text-align:center;padding:32px;color:var(--muted);font-size:14px">Noch keine Übungen — füge welche hinzu</div>';
+    html += emptyState('🏋️', 'Noch keine Übungen', 'Füge Übungen zu diesem Plan hinzu.');
   } else {
     html += '<div id="template-ex-list">';
     exs.forEach(function(ex, i) {
@@ -3542,7 +3547,10 @@ async function renderHistory(el) {
     const hasPlan = (dayPlanIds[day.key] || []).length > 0;
     html += '<div class="strip-day' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + '" onclick="selectStatDay(\'' + day.key + '\')" title="' + day.label + '">'
       + '<span class="strip-lbl">' + day.short + '</span>'
-      + '<div class="strip-dot' + (hasPlan ? ' planned' : '') + '"></div>'
+      + (function() {
+    if (hasPlan) return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/><circle cx="9" cy="9" r="7" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-dasharray="44" stroke-dashoffset="33" stroke-linecap="round" transform="rotate(-90 9 9)"/></svg>';
+    return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/></svg>';
+  })()
       + '</div>';
   }
   html += '</div>';
@@ -3557,10 +3565,7 @@ async function renderHistory(el) {
 
   if (allWeekEx.length === 0 || activePlanIds.size === 0) {
     const dayLabel = DAYS.find(d => d.key === selectedDay);
-    html += '<div class="empty-state">'
-      + '<h3>' + (dayLabel ? dayLabel.label : '') + '</h3>'
-      + '<p>Kein Trainingsplan für diesen Tag zugewiesen oder noch keine Daten eingetragen.</p>'
-      + '</div>';
+    html += emptyState('📋', 'Kein Training geplant', 'Wähle einen Tag aus und weise einen Plan zu.');
     el.innerHTML = html;
     return;
   }
@@ -3604,14 +3609,14 @@ async function renderHistory(el) {
   }
 
   if (Object.keys(byPlan).length === 0) {
-    html += '<div class="empty-state"><p>Noch zu wenig Daten für Graphen — trage mindestens 2 Wochen ein.</p></div>';
+    html += emptyState('📊', 'Noch zu wenig Daten', 'Trage mindestens 2 Wochen ein um Graphen zu sehen.');
     el.innerHTML = html;
     return;
   }
 
   for (const [planId, exList] of Object.entries(byPlan)) {
     const plan = planMap[planId];
-    html += '<div class="stat-section-title">' + esc(plan ? plan.name : 'Unbekannt') + '</div>';
+    html += '<div class="stat-section-title" style="border-left:3px solid ' + muscleGroupColor(plan ? plan.muscleGroup : '') + ';padding-left:8px">' + esc(plan ? plan.name : 'Unbekannt') + '</div>';
 
     for (const { ex, entries } of exList) {
       const first = entries[0];
@@ -4037,7 +4042,7 @@ async function showExerciseDetail(exName) {
     + '<div class="ex-body-map">' + muscleBodySVG(info.primary, info.secondary, 520) + '</div>'
     // History
     + (history.length > 1 ? '<div class="chart-wrap" style="margin-top:20px"><canvas class="chart" id="ex-chart" height="160"></canvas></div>' : '')
-    + (history.length === 0 ? '<div style="text-align:center;padding:20px 0 10px;color:var(--muted);font-size:13px">Noch keine Trainingseinheiten</div>' : '')
+    + (history.length === 0 ? emptyState('🗓️', 'Noch keine Einheiten', 'Starte dein erstes Workout.') : '')
     + tableHtml + '</div></div>';
   document.body.appendChild(overlay);
 
@@ -4502,6 +4507,28 @@ function drawLineChart(canvas, data, color) {
 }
 
 // ── Utilities ─────────────────────────────────────────────────
+
+function emptyState(icon, title, sub) {
+  return '<div class="empty-state">'
+    + '<div class="empty-state-icon">' + icon + '</div>'
+    + '<div class="empty-state-title">' + title + '</div>'
+    + (sub ? '<div class="empty-state-sub">' + sub + '</div>' : '')
+    + '</div>';
+}
+
+function muscleGroupColor(mg) {
+  if (!mg) return 'var(--accent)';
+  const m = mg.toLowerCase();
+  if (m.includes('brust') || m.includes('push') || m.includes('trizeps')) return '#4f7ef8';
+  if (m.includes('rücken') || m.includes('pull') || m.includes('bizeps')) return '#a78bfa';
+  if (m.includes('bein') || m.includes('gesäß') || m.includes('waden')) return '#30d158';
+  if (m.includes('schulter')) return '#ff9f0a';
+  if (m.includes('bauch') || m.includes('core')) return '#ff6b6b';
+  if (m.includes('arm') || m.includes('unterarm')) return '#06b6d4';
+  if (m.includes('cardio')) return '#f59e0b';
+  if (m.includes('ganzkörper') || m.includes('upper')) return '#8b5cf6';
+  return 'var(--accent)';
+}
 
 function esc(str) {
   return String(str)
