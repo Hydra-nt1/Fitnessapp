@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<div id="offline-banner" style="display:none">Offline — Daten werden lokal gespeichert</div>
 <div id="app">
 
   <!-- Sidebar (Desktop) -->
@@ -189,6 +190,15 @@
     el.appendChild(circle);
     setTimeout(function() { circle.remove(); }, 600);
   }, { passive: true });
+
+  // Offline indicator
+  var offlineBanner = document.getElementById('offline-banner');
+  function updateOnlineStatus() {
+    offlineBanner.style.display = navigator.onLine ? 'none' : 'block';
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
 </script>
 </body>
 </html>

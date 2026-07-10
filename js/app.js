@@ -3169,8 +3169,52 @@ async function finishWorkout() {
   activeWorkout = null;
   workoutStartTime = null;
 
-  if (prs.length > 0) showPRModal(prs);
-  else go('verlauf');
+  showSummaryModal(exercises, duration, prs);
+}
+
+function showSummaryModal(exercises, duration, prs) {
+  const totalSets = exercises.reduce(function(n, ex) {
+    return n + ex.sets.filter(function(s) { return s.done; }).length;
+  }, 0);
+  const totalVolume = exercises.reduce(function(n, ex) {
+    return n + ex.sets.filter(function(s) { return s.done; }).reduce(function(v, s) { return v + s.kg * s.reps; }, 0);
+  }, 0);
+  const mins = Math.floor(duration / 60);
+  const secs = duration % 60;
+  const durationStr = mins + ':' + String(secs).padStart(2, '0');
+
+  const exRows = exercises.map(function(ex) {
+    const done = ex.sets.filter(function(s) { return s.done; });
+    if (!done.length) return '';
+    const maxKg = Math.max.apply(null, done.map(function(s) { return s.kg; }));
+    return '<div class="summary-ex-item">'
+      + '<span class="summary-ex-name">' + esc(ex.name) + '</span>'
+      + '<span class="summary-ex-detail">' + done.length + ' Sätze · ' + maxKg + ' kg</span>'
+      + '</div>';
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal summary-modal">'
+    + '<div class="modal-header"><span class="modal-title">Workout abgeschlossen</span>'
+    + '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove();go(\'verlauf\')">&#x2715;</button></div>'
+    + '<div class="modal-body">'
+    + '<span class="summary-icon">💪</span>'
+    + '<div class="summary-title">Gut gemacht!</div>'
+    + '<div class="summary-subtitle">Hier ist deine Zusammenfassung</div>'
+    + '<div class="summary-stats">'
+    + '<div class="summary-stat"><div class="summary-stat-value">' + durationStr + '</div><div class="summary-stat-label">Dauer</div></div>'
+    + '<div class="summary-stat"><div class="summary-stat-value">' + totalSets + '</div><div class="summary-stat-label">Sätze</div></div>'
+    + '<div class="summary-stat"><div class="summary-stat-value">' + Math.round(totalVolume) + '</div><div class="summary-stat-label">Volumen kg</div></div>'
+    + '</div>'
+    + '<div class="summary-ex-list">' + exRows + '</div>'
+    + '</div>'
+    + '<div class="modal-footer">'
+    + (prs.length > 0
+      ? '<button class="btn btn-primary" onclick="this.closest(\'.modal-overlay\').remove();showPRModal(' + JSON.stringify(prs) + ')">🏆 ' + prs.length + ' neuer PR!</button>'
+      : '<button class="btn btn-primary" onclick="this.closest(\'.modal-overlay\').remove();go(\'verlauf\')">Fertig</button>')
+    + '</div></div>';
+  document.body.appendChild(overlay);
 }
 
 async function checkPRs(exercises, currentSessionId) {
