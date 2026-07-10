@@ -4519,14 +4519,45 @@ window.coachSend = async function() {
   if (msgs) msgs.scrollTop = msgs.scrollHeight;
 
   var profileData = getProfileData();
-  var systemPrompt = 'Du bist ein professioneller Fitness-Coach. Antworte immer auf Deutsch. '
+
+  // Build personal context block
+  var ctx = [];
+  // Use latest logged weight if available
+  var latestW = profileData.weight || null;
+  try {
+    var stats = await dbGetAll('bodyStats');
+    if (stats.length) {
+      stats.sort(function(a,b){return b.date-a.date;});
+      if (stats[0].weight) latestW = stats[0].weight;
+    }
+  } catch(e) {}
+
+  if (profileData.name)       ctx.push('Name: ' + profileData.name);
+  if (profileData.height)     ctx.push('Größe: ' + profileData.height + ' cm');
+  if (latestW)                ctx.push('Körpergewicht: ' + latestW + ' kg');
+  if (profileData.goalWeight) ctx.push('Zielgewicht: ' + profileData.goalWeight + ' kg');
+  if (profileData.goal)       ctx.push('Trainingsziel: ' + profileData.goal);
+  if (profileData.level)      ctx.push('Erfahrungslevel: ' + profileData.level);
+  if (profileData.daysPerWeek)ctx.push('Trainingstage pro Woche: ' + profileData.daysPerWeek);
+  if (profileData.equipment)  ctx.push('Verfügbares Equipment: ' + profileData.equipment);
+
+  // Add current training plans
+  var allPlans = [];
+  try { allPlans = await dbGetAll('plans'); } catch(e) {}
+  if (allPlans.length) {
+    var planNames = allPlans.map(function(p) { return p.name; }).join(', ');
+    ctx.push('Trainingsplan enthält: ' + planNames);
+  }
+
+  var systemPrompt = 'Du bist ein professioneller, personalisierter Fitness-Coach. Antworte immer auf Deutsch. '
     + 'Gib konkrete, umsetzbare Ratschläge zu Training, Ernährung und Regeneration. '
+    + 'Passe deine Empfehlungen IMMER an die persönlichen Daten des Nutzers an. '
     + 'Halte Antworten kurz und strukturiert (max. 3-4 Absätze). '
     + 'Verwende gelegentlich passende Emojis für bessere Lesbarkeit.';
 
-  if (profileData.name) systemPrompt += ' Der Nutzer heißt ' + profileData.name + '.';
-  if (profileData.goal) systemPrompt += ' Trainingsziel: ' + profileData.goal + '.';
-  if (profileData.level) systemPrompt += ' Erfahrungslevel: ' + profileData.level + '.';
+  if (ctx.length) {
+    systemPrompt += '\n\nNutzerprofil:\n' + ctx.join('\n');
+  }
 
   var messages = [{ role: 'system', content: systemPrompt }];
   for (var i = 0; i < _coachHistory.length; i++) {
