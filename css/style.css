@@ -1255,6 +1255,42 @@ html, body {
 .summary-ex-name { font-weight: 600; }
 .summary-ex-detail { color: var(--soft); font-size: 13px; }
 
+/* ── Streak ── */
+.streak-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(79,126,248,0.15), rgba(167,139,250,0.1));
+  border: 1px solid rgba(79,126,248,0.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.streak-fire { font-size: 36px; line-height: 1; animation: trophyIn 0.5s cubic-bezier(0.34,1.6,0.64,1) both; }
+.streak-center { flex: 1; }
+.streak-count { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.1; }
+.streak-label { font-size: 12px; color: var(--soft); margin-bottom: 2px; }
+.streak-next { font-size: 12px; color: var(--accent); margin-top: 4px; font-weight: 600; }
+.streak-right { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.streak-badge { font-size: 11px; color: var(--soft); white-space: nowrap; }
+
+.summary-streak {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(79,126,248,0.1);
+  border: 1px solid rgba(79,126,248,0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.summary-streak.milestone {
+  background: rgba(255,159,10,0.12);
+  border-color: rgba(255,159,10,0.3);
+}
+.summary-streak-fire { font-size: 22px; }
+.summary-streak-text { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
 .overload-hint {
   font-size: 12px;
   color: var(--accent);

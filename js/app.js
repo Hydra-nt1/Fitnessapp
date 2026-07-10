@@ -1759,11 +1759,35 @@ async function renderHeute(el) {
   const [thisW, lastW] = await Promise.all([getWeekStats(0, sessions, allSets), getWeekStats(1, sessions, allSets)]);
   const volHistory = getWeeklyVolumeHistory(8, sessions, allSets);
 
+  // Streak
+  const streak = calcStreak(sessions.filter(function(s) { return s.completed; }));
+  const streakMilestones = [3, 7, 14, 30, 60, 100];
+  const nextMilestone = streakMilestones.find(function(m) { return m > streak; }) || null;
+
   // ── HTML ──
   let html = '<div class="page-header">'
     + '<h1 class="page-title">Heute <span class="today-sub">' + todayDay.label + '</span></h1>'
     + '<button class="btn btn-ghost" onclick="startEmptyWorkout()">Leeres Workout</button>'
     + '</div>';
+
+  // Streak card
+  if (streak > 0) {
+    const fire = streak >= 7 ? '🔥' : streak >= 3 ? '⚡' : '✨';
+    const milestoneHtml = nextMilestone
+      ? '<div class="streak-next">Noch ' + (nextMilestone - streak) + ' Tag' + (nextMilestone - streak !== 1 ? 'e' : '') + ' bis ' + nextMilestone + '-Tage-Serie</div>'
+      : '<div class="streak-next">Unglaublich — halte die Serie!</div>';
+    html += '<div class="streak-card">'
+      + '<div class="streak-left"><div class="streak-fire">' + fire + '</div></div>'
+      + '<div class="streak-center">'
+      + '<div class="streak-count">' + streak + ' Tag' + (streak !== 1 ? 'e' : '') + '</div>'
+      + '<div class="streak-label">Aktuelle Serie</div>'
+      + milestoneHtml
+      + '</div>'
+      + '<div class="streak-right">' + streakMilestones.filter(function(m){ return m <= streak; }).map(function(m){
+          return '<span class="streak-badge">🏅 ' + m + '</span>';
+        }).join('') + '</div>'
+      + '</div>';
+  }
 
   // Week navigation + strip
   html += '<div class="week-nav">'
@@ -3168,15 +3192,17 @@ async function finishWorkout() {
   scheduleSave();
 
   const prs = await checkPRs(exercises, sessionId);
+  const allSessionsNow = await dbGetAll('workoutSessions');
+  const streak = calcStreak(allSessionsNow.filter(function(s) { return s.completed; }));
   clearInterval(mainTimerInterval);
   dismissRest();
   activeWorkout = null;
   workoutStartTime = null;
 
-  showSummaryModal(exercises, duration, prs);
+  showSummaryModal(exercises, duration, prs, streak);
 }
 
-function showSummaryModal(exercises, duration, prs) {
+function showSummaryModal(exercises, duration, prs, streak) {
   const totalSets = exercises.reduce(function(n, ex) {
     return n + ex.sets.filter(function(s) { return s.done; }).length;
   }, 0);
@@ -3211,6 +3237,15 @@ function showSummaryModal(exercises, duration, prs) {
     + '<div class="summary-stat"><div class="summary-stat-value">' + totalSets + '</div><div class="summary-stat-label">Sätze</div></div>'
     + '<div class="summary-stat"><div class="summary-stat-value">' + Math.round(totalVolume) + '</div><div class="summary-stat-label">Volumen kg</div></div>'
     + '</div>'
+    + (streak > 0 ? (function() {
+        const milestones = [3,7,14,30,60,100];
+        const isMilestone = milestones.includes(streak);
+        const fire = streak >= 7 ? '🔥' : streak >= 3 ? '⚡' : '✨';
+        return '<div class="summary-streak' + (isMilestone ? ' milestone' : '') + '">'
+          + '<span class="summary-streak-fire">' + fire + '</span>'
+          + '<span class="summary-streak-text">' + streak + '-Tage-Serie' + (isMilestone ? ' — Meilenstein erreicht! 🏅' : '') + '</span>'
+          + '</div>';
+      })() : '')
     + '<div class="summary-ex-list">' + exRows + '</div>'
     + '</div>'
     + '<div class="modal-footer">'
