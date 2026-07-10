@@ -1255,6 +1255,30 @@ html, body {
 .summary-ex-name { font-weight: 600; }
 .summary-ex-detail { color: var(--soft); font-size: 13px; }
 
+.overload-hint {
+  font-size: 12px;
+  color: var(--accent);
+  margin: 2px 0 8px;
+  opacity: 0.85;
+}
+
+.set-row.pr-glow {
+  background: rgba(79, 126, 248, 0.12);
+  border-radius: 6px;
+}
+
+.progress-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+.progress-badge.pos { background: rgba(48, 209, 88, 0.15); color: var(--green); }
+.progress-badge.neg { background: rgba(255, 69, 58, 0.15); color: var(--red); }
+.progress-badge.warn { background: rgba(255, 159, 10, 0.15); color: #ff9f0a; }
+
 /* ── Charts ── */
 
 .chart-wrap {

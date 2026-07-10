@@ -2959,7 +2959,8 @@ async function startWorkout(planId) {
         prev: prevSets[i] ? (prevSets[i].kg + '×' + prevSets[i].reps) : ''
       });
     }
-    exercises.push({ name: pe.name, sets: sets });
+    const prevMaxKg = prevSets.length > 0 ? Math.max(...prevSets.map(function(s) { return s.kg || 0; })) : 0;
+    exercises.push({ name: pe.name, sets: sets, prevMaxKg: prevMaxKg });
   }
 
   const sessionId = await dbAdd('workoutSessions', {
@@ -3043,16 +3044,18 @@ function renderExerciseCard(ex, ei) {
     + '<div class="sets-badge' + (allDone ? ' complete' : '') + '">' + doneSets + '/' + ex.sets.length + ' Sätze</div>'
     + '</div>'
     + '<div class="prev-hint">' + prevText + '</div>'
+    + (ex.prevMaxKg > 0 ? '<div class="overload-hint">💡 Ziel heute: <strong>' + (ex.prevMaxKg + 2.5) + ' kg</strong></div>' : '')
     + '<div class="sets-table">'
     + '<div class="sets-header"><div>Satz</div><div>Vorher</div><div>KG</div><div>Wdh.</div><div>&#10003;</div></div>'
-    + ex.sets.map(function(set, si) { return renderSetRow(ei, si, set); }).join('')
+    + ex.sets.map(function(set, si) { return renderSetRow(ei, si, set, ex.prevMaxKg); }).join('')
     + '</div>'
     + '<div class="add-set-row"><button class="btn-text" onclick="addSet(' + ei + ')">+ Satz</button></div>'
     + '</div>';
 }
 
-function renderSetRow(ei, si, set) {
-  return '<div class="set-row' + (set.done ? ' done' : '') + '" id="set-row-' + ei + '-' + si + '">'
+function renderSetRow(ei, si, set, prevMaxKg) {
+  const isPr = set.done && prevMaxKg > 0 && set.kg > prevMaxKg;
+  return '<div class="set-row' + (set.done ? ' done' : '') + (isPr ? ' pr-glow' : '') + '" id="set-row-' + ei + '-' + si + '">'
     + '<div class="set-num' + (set.done ? ' done' : '') + '">' + (si + 1) + '</div>'
     + '<div class="set-prev">' + (set.prev || '—') + '</div>'
     + '<input class="set-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + set.kg + '"'
@@ -3108,7 +3111,8 @@ function addExerciseToWorkout() {
         prev: prevSets[i] ? (prevSets[i].kg + '×' + prevSets[i].reps) : ''
       });
     }
-    activeWorkout.exercises.push({ name: exName, sets: sets });
+    const prevMaxKg = prevSets.length > 0 ? Math.max(...prevSets.map(function(s) { return s.kg || 0; })) : 0;
+    activeWorkout.exercises.push({ name: exName, sets: sets, prevMaxKg: prevMaxKg });
     const body = document.getElementById('workout-body');
     if (body) {
       const ei = activeWorkout.exercises.length - 1;
@@ -3589,6 +3593,16 @@ async function renderHistory(el) {
         + '<span class="stat-chip ' + (deltaR > 0 ? 'pos' : deltaR < 0 ? 'neg' : '') + '">'
         + (deltaR > 0 ? '▲ +' : deltaR < 0 ? '▼ ' : '') + deltaR + ' Wdh</span>'
         + '</div>'
+        + (function() {
+            if (entries.length >= 3 && entries[entries.length-1].weight === entries[entries.length-2].weight && entries[entries.length-1].weight === entries[entries.length-3].weight) {
+              return '<span class="progress-badge warn">➡️ Stagniert</span>';
+            } else if (entries.length >= 2 && entries[entries.length-1].weight > entries[entries.length-2].weight) {
+              return '<span class="progress-badge pos">📈 Steigert</span>';
+            } else if (entries.length >= 2 && entries[entries.length-1].weight < entries[entries.length-2].weight) {
+              return '<span class="progress-badge neg">📉 Rückgang</span>';
+            }
+            return '';
+          })()
         + '<div class="stat-chart-label">Gewicht (kg)</div>'
         + makeSvgLineChart(entries, 'weight', '#4f7dff')
         + '<div class="stat-chart-label" style="margin-top:8px">Wiederholungen</div>'
