@@ -3585,7 +3585,6 @@ async function renderHistory(el) {
   if (completedSessions.length > 0) {
     html += makeHeatmapSection(completedSessions);
   }
-  html += makeMonthCalendar(completedSessions);
 
   // ── Volumen-Tracking ──
   const volumeData = buildVolumeData(completedSessions, allSets);
