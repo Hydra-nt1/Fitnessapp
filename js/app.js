@@ -3586,6 +3586,45 @@ async function renderHistory(el) {
     html += makeHeatmapSection(completedSessions);
   }
 
+  // ── Inaktivitäts-Warnung ──
+  if (completedSessions.length > 0) {
+    const lastSession = completedSessions.slice().sort(function(a,b){ return b.startedAt - a.startedAt; })[0];
+    const daysSince = Math.floor((Date.now() - lastSession.startedAt) / 86400000);
+    if (daysSince >= 5) {
+      const icon = daysSince >= 14 ? '🔴' : daysSince >= 7 ? '🟠' : '🟡';
+      html += '<div class="inactivity-banner">'
+        + '<span class="inactivity-icon">' + icon + '</span>'
+        + '<div><div class="inactivity-title">Du hast seit ' + daysSince + ' Tagen nicht trainiert</div>'
+        + '<div class="inactivity-sub">Letztes Workout: ' + formatDate(lastSession.startedAt) + ' — ' + esc(lastSession.planName || 'Workout') + '</div>'
+        + '</div></div>';
+    }
+  }
+
+  // ── Letzte 5 Sessions ──
+  if (completedSessions.length > 0) {
+    const setsBySession = {};
+    for (const s of allSets) {
+      if (!setsBySession[s.sessionId]) setsBySession[s.sessionId] = [];
+      setsBySession[s.sessionId].push(s);
+    }
+    const lastFive = completedSessions.slice().sort(function(a,b){ return b.startedAt - a.startedAt; }).slice(0, 5);
+    html += '<div class="stat-card" style="margin-bottom:16px">'
+      + '<div class="stat-card-title">Letzte Einheiten</div>'
+      + lastFive.map(function(s) {
+          const sets = setsBySession[s.id] || [];
+          const vol = sets.reduce(function(sum, st) { return sum + (st.weight||0) * (st.reps||0); }, 0);
+          const dur = s.duration ? Math.round(s.duration / 60) + ' min' : '—';
+          return '<div class="last-session-row" onclick="showSessionDetail(' + s.id + ')">'
+            + '<div class="last-session-left">'
+            + '<div class="last-session-name">' + esc(s.planName || 'Workout') + '</div>'
+            + '<div class="last-session-date">' + formatDate(s.startedAt) + ' · ' + dur + '</div>'
+            + '</div>'
+            + '<div class="last-session-vol">' + (vol > 0 ? Math.round(vol).toLocaleString('de-DE') + ' kg' : '—') + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
   // ── Volumen-Tracking ──
   const volumeData = buildVolumeData(completedSessions, allSets);
   if (volumeData.length > 1) {
