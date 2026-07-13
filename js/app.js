@@ -1653,6 +1653,7 @@ function render(page, el) {
   else if (page.startsWith('tag:')) { var tp = page.split(':'); renderTagDetail(el, tp[1], parseInt(tp[2]) || 0); }
   else if (page.startsWith('template:')) renderTemplateDetail(el, parseInt(page.split(':')[1]));
   else if (page === 'verlauf') renderHistory(el);
+  else if (page === 'suche') renderSearch(el);
   else if (page === 'uebungen') renderExercises(el);
   else if (page === 'coach') renderCoach(el);
   else if (page === 'profil') renderProfile(el);
@@ -1765,9 +1766,17 @@ async function renderHeute(el) {
   const nextMilestone = streakMilestones.find(function(m) { return m > streak; }) || null;
 
   // ── HTML ──
+  var _ct = localStorage.getItem('fittracker_theme') || 'dark';
   let html = '<div class="page-header">'
     + '<h1 class="page-title">Heute <span class="today-sub">' + todayDay.label + '</span></h1>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<button class="btn btn-icon" title="Design wechseln" onclick="applyTheme(localStorage.getItem(\'fittracker_theme\')==\'light\'?\'dark\':\'light\');go(\'heute\')">'
+    + (localStorage.getItem('fittracker_theme') === 'light'
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>')
+    + '</button>'
     + '<button class="btn btn-ghost" onclick="startEmptyWorkout()">Leeres Workout</button>'
+    + '</div>'
     + '</div>';
 
   // Streak card
@@ -1949,6 +1958,9 @@ async function renderHeute(el) {
       + '</div>';
   }
 
+
+  html += '<button class="quick-log-fab" onclick="showQuickLog()" title="Schnell eintragen">+'
+    + '<span class="quick-log-label">Schnell-Log</span></button>';
 
   el.innerHTML = html;
 
@@ -3409,6 +3421,50 @@ function selectStatDay(dayKey) {
   renderHistory(document.getElementById('content-inner'));
 }
 
+function makeMonthCalendar(sessions) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+  const sessionDays = new Set();
+  for (const s of sessions) {
+    const d = new Date(s.startedAt);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      sessionDays.add(d.getDate());
+    }
+  }
+
+  // start weekday (Mon=0)
+  let startWd = firstDay.getDay() - 1;
+  if (startWd < 0) startWd = 6;
+
+  const dayLabels = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let calHtml = '<div class="month-cal-header">' + dayLabels.map(function(d) {
+    return '<div class="month-cal-wd">' + d + '</div>';
+  }).join('') + '</div><div class="month-cal-grid">';
+
+  for (let i = 0; i < startWd; i++) calHtml += '<div class="month-cal-day empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate();
+    const trained = sessionDays.has(d);
+    calHtml += '<div class="month-cal-day' + (isToday ? ' today' : '') + (trained ? ' trained' : '') + '">'
+      + '<span>' + d + '</span>'
+      + (trained ? '<div class="month-cal-dot"></div>' : '')
+      + '</div>';
+  }
+
+  calHtml += '</div>';
+
+  return '<div class="stat-card" style="margin-bottom:16px">'
+    + '<div class="stat-card-title">' + monthNames[month] + ' ' + year + '</div>'
+    + calHtml
+    + '</div>';
+}
+
 function makeHeatmapSection(sessions) {
   const WEEKS = 16;
   const today = new Date();
@@ -3529,6 +3585,7 @@ async function renderHistory(el) {
   if (completedSessions.length > 0) {
     html += makeHeatmapSection(completedSessions);
   }
+  html += makeMonthCalendar(completedSessions);
 
   // ── Volumen-Tracking ──
   const volumeData = buildVolumeData(completedSessions, allSets);
@@ -3687,6 +3744,72 @@ async function showSessionDetail(sessionId) {
     + '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">&#x2715;</button>'
     + '</div><div class="modal-body">' + bodyHtml + '</div></div>';
   document.body.appendChild(overlay);
+}
+
+// ── Suche Page ────────────────────────────────────────────────
+
+async function renderSearch(el) {
+  let html = '<div class="page-header"><h1 class="page-title">Suche</h1></div>'
+    + '<div class="search-bar-wrap">'
+    + '<input class="search-global-input" id="global-search-input" type="text" placeholder="Übungen, Pläne, Einheiten …" oninput="runGlobalSearch(this.value)">'
+    + '</div>'
+    + '<div id="global-search-results"></div>';
+  el.innerHTML = html;
+  document.getElementById('global-search-input').focus();
+}
+
+async function runGlobalSearch(q) {
+  const resultsEl = document.getElementById('global-search-results');
+  if (!resultsEl) return;
+  q = q.trim().toLowerCase();
+  if (q.length < 2) { resultsEl.innerHTML = ''; return; }
+
+  const [plans, sessions] = await Promise.all([dbGetAll('plans'), dbGetAll('workoutSessions')]);
+  let html = '';
+
+  // Exercises
+  const allEx = Object.values(EXERCISE_LIBRARY).flat();
+  const matchEx = allEx.filter(function(n) { return n.toLowerCase().includes(q); }).slice(0, 8);
+  if (matchEx.length) {
+    html += '<div class="search-section-title">Übungen</div>';
+    html += matchEx.map(function(n) {
+      return '<div class="search-result-item" onclick="go(\'uebungen\')">'
+        + '<span class="search-result-icon">🏋️</span>'
+        + '<span class="search-result-name">' + esc(n) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  // Plans
+  const matchPlans = plans.filter(function(p) { return p.name.toLowerCase().includes(q); }).slice(0, 5);
+  if (matchPlans.length) {
+    html += '<div class="search-section-title">Trainingspläne</div>';
+    html += matchPlans.map(function(p) {
+      return '<div class="search-result-item" onclick="go(\'template:' + p.id + '\')">'
+        + '<span class="search-result-icon">📋</span>'
+        + '<span class="search-result-name">' + esc(p.name) + '</span>'
+        + (p.muscleGroup ? '<span class="search-result-sub">' + esc(p.muscleGroup) + '</span>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  // Sessions
+  const matchSessions = sessions.filter(function(s) {
+    return s.completed && s.planName && s.planName.toLowerCase().includes(q);
+  }).sort(function(a,b){ return b.startedAt - a.startedAt; }).slice(0, 5);
+  if (matchSessions.length) {
+    html += '<div class="search-section-title">Einheiten</div>';
+    html += matchSessions.map(function(s) {
+      return '<div class="search-result-item" onclick="showSessionDetail(' + s.id + ')">'
+        + '<span class="search-result-icon">📅</span>'
+        + '<span class="search-result-name">' + esc(s.planName) + '</span>'
+        + '<span class="search-result-sub">' + formatDate(s.startedAt) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  if (!html) html = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:14px">Keine Ergebnisse für "' + esc(q) + '"</div>';
+  resultsEl.innerHTML = html;
 }
 
 // ── Übungen Page ──────────────────────────────────────────────
@@ -4165,7 +4288,33 @@ async function renderProfile(el) {
     + '</div>'
     + profilField('Zielgewicht (kg)', 'number', 'goalWeight', profile.goalWeight || '', '75', '🎯', 'icon-bg-orange')
     + '</div>'
-    + (statsSort.length > 1 ? '<div class="card" style="margin-bottom:16px;padding:14px 16px"><div style="font-size:12px;color:var(--soft);margin-bottom:8px">Gewichtsverlauf</div><div class="chart-wrap"><canvas class="chart" id="weight-chart" height="100"></canvas></div></div>' : '');
+    + (statsSort.length > 1 ? '<div class="card" style="margin-bottom:16px;padding:14px 16px"><div style="font-size:12px;color:var(--soft);margin-bottom:8px">Gewichtsverlauf</div><div class="chart-wrap"><canvas class="chart" id="weight-chart" height="100"></canvas></div></div>' : '')
+    + (function() {
+        const measureEntries = statsSort.filter(function(s) { return s.chest || s.waist || s.arms || s.hips; });
+        if (measureEntries.length < 2) return '';
+        const mData = measureEntries.slice().reverse();
+        return '<div class="card" style="margin-bottom:16px;padding:14px 16px">'
+          + '<div style="font-size:12px;color:var(--soft);margin-bottom:8px">Körpermaße (cm)</div>'
+          + '<div class="measures-legend">'
+          + ['chest','waist','arms','hips'].map(function(k,i) {
+              var label = {chest:'Brust',waist:'Taille',arms:'Arme',hips:'Hüfte'}[k];
+              var color = ['#4f7ef8','#30d158','#ff9f0a','#a78bfa'][i];
+              var latest = mData[mData.length-1][k];
+              return latest ? '<span class="measure-legend-item"><span style="background:'+color+'"></span>'+label+' '+latest+'cm</span>' : '';
+            }).join('')
+          + '</div>'
+          + (function() {
+              var lines = '';
+              var colors = ['#4f7ef8','#30d158','#ff9f0a','#a78bfa'];
+              var keys = ['chest','waist','arms','hips'];
+              keys.forEach(function(k, i) {
+                var pts = mData.filter(function(d){ return d[k]; }).map(function(d){ return {x: d.date, y: d[k]}; });
+                if (pts.length >= 2) lines += makeSvgLineChart(pts, 'y', colors[i]);
+              });
+              return lines || '';
+            })()
+          + '</div>';
+      })();
 
   // ── Ziel & Erfahrung ──
   html += '<div class="section-title">Training</div>'
@@ -4411,10 +4560,21 @@ function showAddWeightModal() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = '<div class="modal">'
-    + '<div class="modal-header"><span class="modal-title">Gewicht eintragen</span>'
+    + '<div class="modal-header"><span class="modal-title">Körperdaten eintragen</span>'
     + '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">&#x2715;</button></div>'
-    + '<div class="modal-body"><div class="form-group"><label class="form-label">Gewicht (kg)</label>'
+    + '<div class="modal-body">'
+    + '<div class="measure-tabs"><button class="measure-tab active" id="mtab-weight" onclick="switchMeasureTab(\'weight\')">Gewicht</button>'
+    + '<button class="measure-tab" id="mtab-measures" onclick="switchMeasureTab(\'measures\')">Maße</button></div>'
+    + '<div id="mtab-weight-body"><div class="form-group"><label class="form-label">Gewicht (kg)</label>'
     + '<input class="form-input" id="weight-input" type="number" min="0" step="0.1" placeholder="75.0"></div></div>'
+    + '<div id="mtab-measures-body" style="display:none">'
+    + '<div class="measures-grid">'
+    + '<div class="form-group"><label class="form-label">Brust (cm)</label><input class="form-input" id="m-chest" type="number" min="0" step="0.5" placeholder="100"></div>'
+    + '<div class="form-group"><label class="form-label">Taille (cm)</label><input class="form-input" id="m-waist" type="number" min="0" step="0.5" placeholder="80"></div>'
+    + '<div class="form-group"><label class="form-label">Arme (cm)</label><input class="form-input" id="m-arms" type="number" min="0" step="0.5" placeholder="35"></div>'
+    + '<div class="form-group"><label class="form-label">Hüfte (cm)</label><input class="form-input" id="m-hips" type="number" min="0" step="0.5" placeholder="95"></div>'
+    + '</div></div>'
+    + '</div>'
     + '<div class="modal-footer">'
     + '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
     + '<button class="btn btn-primary" id="weight-save">Speichern</button>'
@@ -4422,12 +4582,82 @@ function showAddWeightModal() {
   document.body.appendChild(overlay);
   overlay.querySelector('#weight-input').focus();
   overlay.querySelector('#weight-save').addEventListener('click', async function() {
-    const val = parseFloat(overlay.querySelector('#weight-input').value);
-    if (!val || val <= 0) return;
-    await dbAdd('bodyStats', { date: Date.now(), weight: val });
+    const activeTab = overlay.querySelector('.measure-tab.active').id;
+    if (activeTab === 'mtab-weight') {
+      const val = parseFloat(overlay.querySelector('#weight-input').value);
+      if (!val || val <= 0) return;
+      await dbAdd('bodyStats', { date: Date.now(), weight: val });
+    } else {
+      const chest = parseFloat(overlay.querySelector('#m-chest').value) || null;
+      const waist = parseFloat(overlay.querySelector('#m-waist').value) || null;
+      const arms  = parseFloat(overlay.querySelector('#m-arms').value)  || null;
+      const hips  = parseFloat(overlay.querySelector('#m-hips').value)  || null;
+      if (!chest && !waist && !arms && !hips) return;
+      await dbAdd('bodyStats', { date: Date.now(), chest, waist, arms, hips });
+    }
     overlay.remove();
     go('profil');
   });
+}
+
+function showQuickLog() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal">'
+    + '<div class="modal-header"><span class="modal-title">Schnell-Log</span>'
+    + '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">&#x2715;</button></div>'
+    + '<div class="modal-body">'
+    + '<div class="form-group"><label class="form-label">Übung</label>'
+    + '<input class="form-input" id="ql-exercise" type="text" placeholder="z.B. Bankdrücken" list="ql-exercise-list" autocomplete="off">'
+    + '<datalist id="ql-exercise-list">'
+    + Object.values(EXERCISE_LIBRARY).flat().slice(0, 200).map(function(n) { return '<option value="' + n.replace(/"/g,'&quot;') + '">'; }).join('')
+    + '</datalist></div>'
+    + '<div class="ql-row">'
+    + '<div class="form-group"><label class="form-label">Gewicht (kg)</label><input class="form-input" id="ql-kg" type="number" min="0" step="0.5" placeholder="0"></div>'
+    + '<div class="form-group"><label class="form-label">Wdh.</label><input class="form-input" id="ql-reps" type="number" min="1" placeholder="10"></div>'
+    + '<div class="form-group"><label class="form-label">Sätze</label><input class="form-input" id="ql-sets" type="number" min="1" placeholder="3"></div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="modal-footer">'
+    + '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
+    + '<button class="btn btn-primary" id="ql-save">Speichern</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#ql-exercise').focus();
+  overlay.querySelector('#ql-save').addEventListener('click', async function() {
+    const name = overlay.querySelector('#ql-exercise').value.trim();
+    const kg   = parseFloat(overlay.querySelector('#ql-kg').value) || 0;
+    const reps = parseInt(overlay.querySelector('#ql-reps').value) || 10;
+    const sets = parseInt(overlay.querySelector('#ql-sets').value) || 1;
+    if (!name) return;
+    const sessionId = await dbAdd('workoutSessions', {
+      planId: null, planName: 'Schnell-Log',
+      startedAt: Date.now(), completedAt: Date.now(),
+      duration: 0, completed: true
+    });
+    for (let i = 0; i < sets; i++) {
+      await dbAdd('workoutSets', { sessionId, exerciseName: name, setNumber: i+1, reps, weight: kg, done: true });
+    }
+    scheduleSave();
+    overlay.remove();
+    showToast('✅ ' + name + ' eingetragen');
+  });
+}
+
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.className = 'app-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.classList.add('show'); }, 10);
+  setTimeout(function() { t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 300); }, 2500);
+}
+
+function switchMeasureTab(tab) {
+  document.getElementById('mtab-weight').classList.toggle('active', tab === 'weight');
+  document.getElementById('mtab-measures').classList.toggle('active', tab === 'measures');
+  document.getElementById('mtab-weight-body').style.display = tab === 'weight' ? '' : 'none';
+  document.getElementById('mtab-measures-body').style.display = tab === 'measures' ? '' : 'none';
 }
 
 async function deleteWeightEntry(id) {

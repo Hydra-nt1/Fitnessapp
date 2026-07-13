@@ -2807,3 +2807,101 @@ canvas.chart { display: block; width: 100%; }
 
 /* ── Strip Rings ── */
 .strip-ring { display: flex; align-items: center; justify-content: center; }
+
+
+/* ── Measurements ── */
+.measure-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; }
+.measure-tab { flex: 1; padding: 7px; font-size: 13px; font-weight: 600; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.measure-tab.active { background: var(--surface3); color: var(--text-primary); }
+.measures-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.measures-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.measure-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--soft); }
+.measure-legend-item span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── Monthly Calendar ── */
+.month-cal-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.month-cal-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.month-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.month-cal-day { aspect-ratio: 1; border-radius: 8px; background: var(--surface2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--muted); position: relative; }
+.month-cal-day.empty { background: transparent; }
+.month-cal-day.today { background: rgba(79,126,248,0.15); color: var(--accent); }
+.month-cal-day.trained { background: rgba(48,209,88,0.15); color: var(--green); }
+.month-cal-day.trained.today { background: rgba(48,209,88,0.25); }
+.month-cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); margin-top: 2px; }
+
+/* ── Quick Log FAB ── */
+.quick-log-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(79,126,248,0.4);
+  z-index: 100;
+  transition: transform 0.15s, box-shadow 0.15s;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+.quick-log-fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(79,126,248,0.5); }
+.quick-log-label { display: none; }
+.ql-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* ── Toast ── */
+.app-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--surface3);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Global Search ── */
+.search-bar-wrap { margin-bottom: 16px; }
+.search-global-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}
+.search-global-input:focus { border-color: var(--accent); }
+.search-section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 0 6px; }
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.search-result-item:hover { background: var(--surface2); }
+.search-result-icon { font-size: 18px; flex-shrink: 0; }
+.search-result-name { font-size: 14px; font-weight: 600; flex: 1; }
+.search-result-sub { font-size: 12px; color: var(--muted); }
