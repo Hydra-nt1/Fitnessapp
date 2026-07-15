@@ -1967,9 +1967,6 @@ async function renderHeute(el) {
   }
 
 
-  html += '<button class="quick-log-fab" onclick="showQuickLog()" title="Schnell eintragen">+'
-    + '<span class="quick-log-label">Schnell-Log</span></button>';
-
   el.innerHTML = html;
 
   if (hasData) {
@@ -4662,49 +4659,6 @@ function showAddWeightModal() {
   });
 }
 
-function showQuickLog() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = '<div class="modal">'
-    + '<div class="modal-header"><span class="modal-title">Schnell-Log</span>'
-    + '<button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">&#x2715;</button></div>'
-    + '<div class="modal-body">'
-    + '<div class="form-group"><label class="form-label">Übung</label>'
-    + '<input class="form-input" id="ql-exercise" type="text" placeholder="z.B. Bankdrücken" list="ql-exercise-list" autocomplete="off">'
-    + '<datalist id="ql-exercise-list">'
-    + Object.values(EXERCISE_LIBRARY).flat().slice(0, 200).map(function(n) { return '<option value="' + n.replace(/"/g,'&quot;') + '">'; }).join('')
-    + '</datalist></div>'
-    + '<div class="ql-row">'
-    + '<div class="form-group"><label class="form-label">Gewicht (kg)</label><input class="form-input" id="ql-kg" type="number" min="0" step="0.5" placeholder="0"></div>'
-    + '<div class="form-group"><label class="form-label">Wdh.</label><input class="form-input" id="ql-reps" type="number" min="1" placeholder="10"></div>'
-    + '<div class="form-group"><label class="form-label">Sätze</label><input class="form-input" id="ql-sets" type="number" min="1" placeholder="3"></div>'
-    + '</div>'
-    + '</div>'
-    + '<div class="modal-footer">'
-    + '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
-    + '<button class="btn btn-primary" id="ql-save">Speichern</button>'
-    + '</div></div>';
-  document.body.appendChild(overlay);
-  overlay.querySelector('#ql-exercise').focus();
-  overlay.querySelector('#ql-save').addEventListener('click', async function() {
-    const name = overlay.querySelector('#ql-exercise').value.trim();
-    const kg   = parseFloat(overlay.querySelector('#ql-kg').value) || 0;
-    const reps = parseInt(overlay.querySelector('#ql-reps').value) || 10;
-    const sets = parseInt(overlay.querySelector('#ql-sets').value) || 1;
-    if (!name) return;
-    const sessionId = await dbAdd('workoutSessions', {
-      planId: null, planName: 'Schnell-Log',
-      startedAt: Date.now(), completedAt: Date.now(),
-      duration: 0, completed: true
-    });
-    for (let i = 0; i < sets; i++) {
-      await dbAdd('workoutSets', { sessionId, exerciseName: name, setNumber: i+1, reps, weight: kg, done: true });
-    }
-    scheduleSave();
-    overlay.remove();
-    showToast('✅ ' + name + ' eingetragen');
-  });
-}
 
 function showToast(msg) {
   var t = document.createElement('div');
