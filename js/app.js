@@ -3518,15 +3518,18 @@ function makeMonthCalendar(sessions) {
     + '</div>';
 }
 
-function makeHeatmapSection(sessions) {
+function makeHeatmapSection(sessions, weekOffset) {
+  weekOffset = weekOffset || 0;
   const WEEKS = 16;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  // start at monday of the week 16 weeks ago
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - (today.getDay() || 7) + 1 - (WEEKS - 1) * 7);
 
-  // build set of day-timestamps with sessions
+  // selected week highlight bounds (Mon–Sun of chosen week)
+  const selWeekMs = getWeekStart(-weekOffset);
+  const selWeekEnd = selWeekMs + 6 * 86400000;
+
   const sessionDays = {};
   for (const s of sessions) {
     const d = new Date(s.startedAt);
@@ -3537,37 +3540,61 @@ function makeHeatmapSection(sessions) {
   const CELL = 14, GAP = 3, LABEL_W = 22;
   const totalW = LABEL_W + WEEKS * (CELL + GAP);
   const totalH = 7 * (CELL + GAP) + 20;
+  const mNames = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
   const DAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So'];
   let cells = '';
-  // day-of-week labels
   for (let d = 0; d < 7; d++) {
     if (DAY_LABELS[d]) {
       cells += '<text x="0" y="' + (d * (CELL + GAP) + CELL - 2 + 16) + '" font-size="9" fill="var(--muted)" text-anchor="start">' + DAY_LABELS[d] + '</text>';
     }
   }
 
-  // month labels + cells
+  // find which week column index corresponds to the selected week
+  let selColX = -1;
   let lastMonth = -1;
   for (let w = 0; w < WEEKS; w++) {
     const wx = LABEL_W + w * (CELL + GAP);
+    const weekMonday = new Date(startDate);
+    weekMonday.setDate(startDate.getDate() + w * 7);
+    weekMonday.setHours(0, 0, 0, 0);
+    if (weekMonday.getTime() === selWeekMs) selColX = wx;
+
+    // month label: show on first week of each month change
+    const month = weekMonday.getMonth();
+    if (month !== lastMonth) {
+      // only label if this week's Monday is within our display range
+      if (weekMonday <= today) {
+        cells += '<text x="' + wx + '" y="12" font-size="9" fill="var(--muted)">' + mNames[month] + '</text>';
+      }
+      lastMonth = month;
+    }
+
     for (let d = 0; d < 7; d++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + w * 7 + d);
       if (date > today) continue;
       const ts = date.getTime();
       const hasSess = sessionDays[ts] || 0;
-      const month = date.getMonth();
-      if (month !== lastMonth && d === 0) {
-        const mNames = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-        cells += '<text x="' + wx + '" y="12" font-size="9" fill="var(--muted)">' + mNames[month] + '</text>';
-        lastMonth = month;
-      }
+      const isInSelWeek = ts >= selWeekMs && ts <= selWeekEnd;
       const wy = 16 + d * (CELL + GAP);
-      const fill = hasSess ? '#4f7ef8' : 'var(--surface2)';
-      const opacity = hasSess ? '1' : '1';
-      cells += '<rect x="' + wx + '" y="' + wy + '" width="' + CELL + '" height="' + CELL + '" rx="3" fill="' + fill + '" opacity="' + opacity + '"/>';
+      let fill, stroke = 'none', strokeW = '0';
+      if (hasSess) {
+        fill = 'var(--accent)';
+      } else if (isInSelWeek) {
+        fill = 'var(--surface3)';
+      } else {
+        fill = 'var(--surface2)';
+      }
+      cells += '<rect x="' + wx + '" y="' + wy + '" width="' + CELL + '" height="' + CELL + '" rx="3" fill="' + fill + '"/>';
     }
+  }
+
+  // selected week column border
+  if (selColX >= 0) {
+    const colW = CELL;
+    const colH = 7 * (CELL + GAP) - GAP;
+    cells += '<rect x="' + (selColX - 2) + '" y="14" width="' + (colW + 4) + '" height="' + (colH + 2) + '" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.5"/>';
   }
 
   const totalWorkouts = sessions.length;
@@ -3636,7 +3663,7 @@ async function renderHistory(el) {
   // ── Trainingsfrequenz-Heatmap ──
   const completedSessions = allSessions.filter(function(s) { return s.completed; });
   if (completedSessions.length > 0) {
-    html += makeHeatmapSection(completedSessions);
+    html += makeHeatmapSection(completedSessions, _statWeekOffset);
   }
 
   // ── Inaktivitäts-Warnung ──
