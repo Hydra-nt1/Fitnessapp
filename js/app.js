@@ -3009,7 +3009,7 @@ async function startWorkout(planId) {
       });
     }
     const prevMaxKg = prevSets.length > 0 ? Math.max(...prevSets.map(function(s) { return s.kg || 0; })) : 0;
-    exercises.push({ name: pe.name, sets: sets, prevMaxKg: prevMaxKg });
+    exercises.push({ name: pe.name, sets: sets, prevMaxKg: prevMaxKg, note: pe.note || '', planExerciseId: pe.id });
   }
 
   const sessionId = await dbAdd('workoutSessions', {
@@ -3094,6 +3094,9 @@ function renderExerciseCard(ex, ei) {
     + '</div>'
     + '<div class="prev-hint">' + prevText + '</div>'
     + (ex.prevMaxKg > 0 ? '<div class="overload-hint">💡 Ziel heute: <strong>' + (ex.prevMaxKg + 2.5) + ' kg</strong></div>' : '')
+    + '<div class="ex-note-wrap">'
+    + '<textarea class="ex-note-area" rows="1" placeholder="Notiz (z.B. Sitzhöhe, Griff, Einstellung…)" oninput="updateExNote(' + ei + ',this.value);this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'" onblur="saveExNoteDb(' + ei + ')" onfocus="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">' + esc(ex.note || '') + '</textarea>'
+    + '</div>'
     + '<div class="sets-table">'
     + '<div class="sets-header"><div>Satz</div><div>Vorher</div><div>KG</div><div>Wdh.</div><div>&#10003;</div></div>'
     + ex.sets.map(function(set, si) { return renderSetRow(ei, si, set, ex.prevMaxKg); }).join('')
@@ -3146,6 +3149,19 @@ function addSet(ei) {
   const last = ex.sets[ex.sets.length - 1];
   ex.sets.push({ kg: last ? last.kg : 0, reps: last ? last.reps : 10, done: false, prev: '' });
   refreshExerciseCard(ei);
+}
+
+function updateExNote(ei, val) {
+  if (!activeWorkout) return;
+  activeWorkout.exercises[ei].note = val;
+}
+
+async function saveExNoteDb(ei) {
+  if (!activeWorkout) return;
+  const ex = activeWorkout.exercises[ei];
+  if (!ex.planExerciseId) return;
+  const rec = await dbGet('planExercises', ex.planExerciseId);
+  if (rec) { rec.note = ex.note; await dbPut('planExercises', rec); }
 }
 
 function addExerciseToWorkout() {

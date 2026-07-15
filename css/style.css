@@ -2959,3 +2959,28 @@ canvas.chart { display: block; width: 100%; }
   transition: background 0.15s, color 0.15s;
 }
 .theme-toggle-btn:hover { background: var(--surface2); color: var(--text-primary); }
+
+/* Exercise note */
+.ex-note-wrap { padding: 0 0 8px; }
+.ex-note-area {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 7px 10px;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.5;
+  transition: border-color 0.15s, color 0.15s;
+  min-height: 34px;
+}
+.ex-note-area:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+.ex-note-area::placeholder { color: var(--muted); opacity: 0.6; }
