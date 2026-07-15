@@ -3436,9 +3436,15 @@ function makeSvgBarChart(labels, values, color) {
 }
 
 let _statSelectedDay = null;
+let _statWeekOffset = 0;
 
 function selectStatDay(dayKey) {
   _statSelectedDay = (_statSelectedDay === dayKey) ? null : dayKey;
+  renderHistory(document.getElementById('content-inner'));
+}
+
+function changeStatWeek(delta) {
+  _statWeekOffset = Math.min(0, _statWeekOffset + delta);
   renderHistory(document.getElementById('content-inner'));
 }
 
@@ -3655,15 +3661,39 @@ async function renderHistory(el) {
       + '</div>';
   }
 
-  // ── Tag-Selektor ──
+  // ── Wochennavigation + Tag-Selektor ──
+  const selWeekStart = getWeekStart(-_statWeekOffset);
+  const selWeekEnd = selWeekStart + 6 * 86400000;
+  const fmtD = function(ts) { return new Date(ts).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }); };
+  const weekLabel = _statWeekOffset === 0 ? 'Diese Woche' : _statWeekOffset === -1 ? 'Letzte Woche' : fmtD(selWeekStart) + ' – ' + fmtD(selWeekEnd);
+
+  // days that had a completed session this displayed week
+  const trainedDaysThisWeek = new Set();
+  for (const s of completedSessions) {
+    if (s.startedAt >= selWeekStart && s.startedAt <= selWeekEnd + 86399999) {
+      const d = new Date(s.startedAt);
+      const dow = d.getDay();
+      const keys = ['so','mo','di','mi','do','fr','sa'];
+      trainedDaysThisWeek.add(keys[dow]);
+    }
+  }
+
+  html += '<div class="stat-week-nav">'
+    + '<button class="stat-week-btn" onclick="changeStatWeek(-1)">&#8249;</button>'
+    + '<span class="stat-week-label">' + weekLabel + '</span>'
+    + '<button class="stat-week-btn" onclick="changeStatWeek(1)"' + (_statWeekOffset >= 0 ? ' disabled style="opacity:0.3;cursor:default"' : '') + '>&#8250;</button>'
+    + '</div>';
+
   html += '<div class="week-strip" style="margin-bottom:20px">';
   for (const day of DAYS) {
-    const isToday = day.key === todayKey;
+    const isToday = _statWeekOffset === 0 && day.key === todayKey;
     const isSelected = day.key === selectedDay;
     const hasPlan = (dayPlanIds[day.key] || []).length > 0;
+    const trained = trainedDaysThisWeek.has(day.key);
     html += '<div class="strip-day' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + '" onclick="selectStatDay(\'' + day.key + '\')" title="' + day.label + '">'
       + '<span class="strip-lbl">' + day.short + '</span>'
       + (function() {
+    if (trained) return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/><circle cx="9" cy="9" r="7" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="44" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 9 9)"/></svg>';
     if (hasPlan) return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/><circle cx="9" cy="9" r="7" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-dasharray="44" stroke-dashoffset="33" stroke-linecap="round" transform="rotate(-90 9 9)"/></svg>';
     return '<svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" fill="none" stroke="var(--surface3)" stroke-width="2.5"/></svg>';
   })()
