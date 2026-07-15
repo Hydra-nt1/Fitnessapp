@@ -3628,7 +3628,7 @@ async function renderHistory(el) {
       if (!setsBySession[s.sessionId]) setsBySession[s.sessionId] = [];
       setsBySession[s.sessionId].push(s);
     }
-    const lastFive = completedSessions.slice().sort(function(a,b){ return b.startedAt - a.startedAt; }).slice(0, 5);
+    const lastFive = completedSessions.filter(function(s){ return s.planName !== 'Schnell-Log'; }).sort(function(a,b){ return b.startedAt - a.startedAt; }).slice(0, 5);
     html += '<div class="stat-card" style="margin-bottom:16px">'
       + '<div class="stat-card-title">Letzte Einheiten</div>'
       + lastFive.map(function(s) {
