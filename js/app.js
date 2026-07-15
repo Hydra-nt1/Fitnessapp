@@ -94,12 +94,31 @@ window.authLogout = async function() {
   location.reload();
 };
 
-// ── Theme ─────────────────────────────────────────────────────
+// ── Theme & Accent ────────────────────────────────────────────
 
 (function() {
   var t = localStorage.getItem('fittracker_theme') || 'dark';
   if (t !== 'dark') document.documentElement.setAttribute('data-theme', t);
+  var a = localStorage.getItem('fittracker_accent');
+  if (a) document.documentElement.style.setProperty('--accent', a);
 })();
+
+var ACCENT_COLORS = [
+  { id: 'blue',   hex: '#4f7ef8', label: 'Blau' },
+  { id: 'purple', hex: '#8b5cf6', label: 'Lila' },
+  { id: 'green',  hex: '#22c55e', label: 'Grün' },
+  { id: 'teal',   hex: '#14b8a6', label: 'Türkis' },
+  { id: 'orange', hex: '#f97316', label: 'Orange' },
+  { id: 'pink',   hex: '#ec4899', label: 'Pink' },
+  { id: 'red',    hex: '#ef4444', label: 'Rot' },
+  { id: 'yellow', hex: '#eab308', label: 'Gelb' },
+];
+
+function applyAccent(hex) {
+  localStorage.setItem('fittracker_accent', hex);
+  document.documentElement.style.setProperty('--accent', hex);
+  renderProfile(document.getElementById('content-inner'));
+}
 
 function applyTheme(t) {
   localStorage.setItem('fittracker_theme', t);
@@ -4432,20 +4451,30 @@ async function renderProfile(el) {
 
   // ── Design ──
   var currentTheme = localStorage.getItem('fittracker_theme') || 'dark';
+  var currentAccent = localStorage.getItem('fittracker_accent') || '#4f7ef8';
   var themes = [
-    { id: 'dark',  label: 'Dark',  color: '#17171d', accent: '#4f7dff' },
-    { id: 'light', label: 'Light', color: '#ffffff', accent: '#2f6bff' },
+    { id: 'dark',  label: 'Dark',  color: '#17171d' },
+    { id: 'light', label: 'Light', color: '#ffffff' },
   ];
   html += '<div class="section-title">Design</div>'
     + '<div class="theme-picker">';
   for (var th of themes) {
     html += '<button class="theme-option' + (th.id === currentTheme ? ' active' : '') + '" onclick="applyTheme(\'' + th.id + '\');renderProfile(document.getElementById(\'content-inner\'))">'
-      + '<div class="theme-preview" style="background:' + th.color + ';border-color:' + (th.id === currentTheme ? th.accent : 'transparent') + '">'
-      + '<div class="theme-preview-bar" style="background:' + th.accent + '"></div>'
+      + '<div class="theme-preview" style="background:' + th.color + ';border-color:' + (th.id === currentTheme ? currentAccent : 'transparent') + '">'
+      + '<div class="theme-preview-bar" style="background:' + currentAccent + '"></div>'
       + '<div class="theme-preview-lines"><div style="background:' + (th.id === 'light' ? '#e0e0e0' : '#ffffff22') + '"></div><div style="background:' + (th.id === 'light' ? '#e0e0e0' : '#ffffff22') + '"></div></div>'
       + '</div>'
       + '<span class="theme-label">' + th.label + '</span>'
       + (th.id === currentTheme ? '<span class="theme-check">✓</span>' : '')
+      + '</button>';
+  }
+  html += '</div>';
+
+  html += '<div class="accent-label">Akzentfarbe</div><div class="accent-picker">';
+  for (var ac of ACCENT_COLORS) {
+    var isActive = currentAccent === ac.hex;
+    html += '<button class="accent-swatch' + (isActive ? ' active' : '') + '" onclick="applyAccent(\'' + ac.hex + '\')" title="' + ac.label + '" style="background:' + ac.hex + '">'
+      + (isActive ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '')
       + '</button>';
   }
   html += '</div>';

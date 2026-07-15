@@ -9,10 +9,12 @@
   --surface3: #27272f;
   --border: rgba(255,255,255,0.07);
   --border2: rgba(255,255,255,0.12);
-  --blue: #4f7dff;
+  --accent: #4f7ef8;
+  --blue: var(--accent);
   --green: #30d158;
   --red: #ff453a;
   --text: #ffffff;
+  --text-primary: #ffffff;
   --soft: #8e8e9a;
   --muted: #48484f;
   --radius: 14px;
@@ -27,10 +29,10 @@
   --surface3: #e5e5ea;
   --border: rgba(0,0,0,0.08);
   --border2: rgba(0,0,0,0.14);
-  --blue: #2f6bff;
   --green: #28b84a;
   --red: #e03429;
   --text: #000000;
+  --text-primary: #000000;
   --soft: #6c6c70;
   --muted: #aeaeb2;
 }
@@ -2995,4 +2997,37 @@ canvas.chart { display: block; width: 100%; }
   font-style: italic;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Accent color picker */
+.accent-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 14px 0 8px;
+}
+.accent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.accent-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.accent-swatch:hover { transform: scale(1.15); }
+.accent-swatch.active {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
 }
