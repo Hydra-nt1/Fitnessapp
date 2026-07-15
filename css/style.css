@@ -2986,3 +2986,13 @@ canvas.chart { display: block; width: 100%; }
   transition: background 0.15s;
 }
 .stat-week-btn:hover:not([disabled]) { background: var(--surface2); }
+
+/* Exercise note in day view */
+.tag-ex-note {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 3px;
+  font-style: italic;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

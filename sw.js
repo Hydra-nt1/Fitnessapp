@@ -1,4 +1,4 @@
-const CACHE = 'fittracker-v83';
+const CACHE = 'fittracker-v84';
 const FILES = ['./', './index.html', './css/style.css', './js/db.js', './js/app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

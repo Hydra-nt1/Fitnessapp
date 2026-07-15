@@ -2418,6 +2418,7 @@ async function renderTagDetail(el, dayKey, weekOffset) {
             + (cur.weight > 0 ? ' · ' + cur.weight + ' kg' : ' · Kein Gewicht')
             + '</div>'
             + deltaHtml
+            + (ex.note ? '<div class="tag-ex-note">' + esc(ex.note) + '</div>' : '')
             + '</div>'
             + '<button class="btn-icon btn-icon-danger" onclick="event.stopPropagation();removeTagEx(' + ex.id + ',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')" title="Entfernen">'
             + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
@@ -2696,7 +2697,11 @@ async function editTagEx(exId, dayKey, weekOffset) {
     + '<input class="form-input" id="tex-reps" type="number" min="1" value="' + cur.reps + '"></div>'
     + '<div class="form-group" style="margin-bottom:0"><label class="form-label">Gewicht (kg)</label>'
     + '<input class="form-input" id="tex-weight" type="number" min="0" step="0.5" value="' + cur.weight + '"></div>'
-    + '</div></div>'
+    + '</div>'
+    + '<div class="form-group" style="margin-top:14px;margin-bottom:0"><label class="form-label">Notiz (z.B. Sitzhöhe, Griff, Einstellung)</label>'
+    + '<textarea class="form-input" id="tex-note" rows="2" placeholder="z.B. Sitz auf Position 3, enger Griff…" style="resize:vertical;font-family:inherit;font-size:13px">' + esc(ex.note || '') + '</textarea>'
+    + '</div>'
+    + '</div>'
     + '<div class="modal-footer">'
     + '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">Abbrechen</button>'
     + '<button class="btn btn-primary" id="tex-save-btn">Speichern</button>'
@@ -2708,11 +2713,13 @@ async function editTagEx(exId, dayKey, weekOffset) {
     const sets   = parseInt(overlay.querySelector('#tex-sets').value)     || 3;
     const reps   = parseInt(overlay.querySelector('#tex-reps').value)     || 10;
     const weight = parseFloat(overlay.querySelector('#tex-weight').value) || 0;
+    const note   = overlay.querySelector('#tex-note').value.trim();
     if (existing) {
       await dbPut('weekExercises', Object.assign({}, existing, { sets: sets, reps: reps, weight: weight }));
     } else {
       await dbAdd('weekExercises', { planExerciseId: exId, weekStart: thisWeekStart, sets: sets, reps: reps, weight: weight });
     }
+    await dbPut('planExercises', Object.assign({}, ex, { note: note }));
     overlay.remove();
     go('tag:' + dayKey + ':' + weekOffset);
   });
