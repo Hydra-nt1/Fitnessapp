@@ -1198,27 +1198,36 @@ function muscleBodySVG(primary, secondary, maxWidth) {
   secondary = secondary || [];
   var uid = 'mm' + Math.floor(Math.random() * 1e9);
 
-  function s(m) {
-    if (primary.includes(m)) return { fill: 'var(--accent)', cls: 'm-primary' };
-    if (secondary.includes(m)) return { fill: 'var(--accent)', cls: 'm-secondary', op: '0.5' };
-    return { fill: '#2a2a46', cls: '' };
-  }
-  var bd = '#131320';
-  var oc = '#0a0a18';
-  var jc = '#060610';
+  // Anatomical muscle-tissue rendering: every muscle keeps a fleshy gradient look at all
+  // times (like a real anatomy chart); worked muscles additionally get a glowing accent
+  // overlay of the same shape so the target is unmistakable without hiding the anatomy.
+  var restGrad = 'url(#grad-rest-'+uid+')';
+  var oc = '#2a1410';
+  var jc = '#ede0c8';
+  var bd = restGrad;
 
   function P(d,f)        { return '<path d="'+d+'" fill="'+f+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
   function C(x,y,r,f)   { return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+f+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
   function E(x,y,rx,ry,f){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+f+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
   function J(x,y,r)      { return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+jc+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
-  // Interactive, tappable + animatable muscle shape
+  // Interactive, tappable muscle shape: fleshy base + (if worked) a pulsing accent overlay on top
   function M(d, m) {
-    var c = s(m);
-    return '<path class="muscle-shape'+(c.cls?' '+c.cls:'')+'" data-m="'+m+'" tabindex="0" d="'+d+'" fill="'+c.fill+'"'+(c.op?' fill-opacity="'+c.op+'"':'')+' stroke="'+oc+'" stroke-width="0.5"/>';
+    var isP = primary.includes(m), isS = !isP && secondary.includes(m);
+    var cls = isP ? ' m-primary' : (isS ? ' m-secondary' : '');
+    var base = '<path class="muscle-shape'+cls+'" data-m="'+m+'" tabindex="0" d="'+d+'" fill="'+restGrad+'" stroke="'+oc+'" stroke-width="0.5"/>';
+    if (!isP && !isS) return base;
+    var grad = 'url(#grad-'+(isP?'primary':'secondary')+'-'+uid+')';
+    var pcls = isP ? 'pulse-primary' : 'pulse-secondary';
+    return base + '<path class="muscle-overlay '+pcls+'" d="'+d+'" fill="'+grad+'" style="pointer-events:none"/>';
   }
   function EM(x,y,rx,ry,m) {
-    var c = s(m);
-    return '<ellipse class="muscle-shape'+(c.cls?' '+c.cls:'')+'" data-m="'+m+'" tabindex="0" cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+c.fill+'"'+(c.op?' fill-opacity="'+c.op+'"':'')+' stroke="'+oc+'" stroke-width="0.5"/>';
+    var isP = primary.includes(m), isS = !isP && secondary.includes(m);
+    var cls = isP ? ' m-primary' : (isS ? ' m-secondary' : '');
+    var base = '<ellipse class="muscle-shape'+cls+'" data-m="'+m+'" tabindex="0" cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+restGrad+'" stroke="'+oc+'" stroke-width="0.5"/>';
+    if (!isP && !isS) return base;
+    var grad = 'url(#grad-'+(isP?'primary':'secondary')+'-'+uid+')';
+    var pcls = isP ? 'pulse-primary' : 'pulse-secondary';
+    return base + '<ellipse class="muscle-overlay '+pcls+'" cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+grad+'" style="pointer-events:none"/>';
   }
   // Muscle label with leader line — only rendered when muscle is highlighted
   // lx,ly = text position; mx,my = arrow tip on muscle; side = 'l' or 'r'
@@ -1235,6 +1244,20 @@ function muscleBodySVG(primary, secondary, maxWidth) {
 
   var mw = maxWidth || 380;
   var sv = '<svg class="muscle-body-svg" id="'+uid+'-svg" viewBox="0 0 300 202" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:'+mw+'px;display:block;margin:0 auto">';
+  sv += '<defs>'
+    + '<radialGradient id="grad-rest-'+uid+'" cx="35%" cy="30%" r="75%">'
+    +   '<stop offset="0%" stop-color="#c17165"/>'
+    +   '<stop offset="100%" stop-color="#7a4038"/>'
+    + '</radialGradient>'
+    + '<radialGradient id="grad-primary-'+uid+'" cx="35%" cy="30%" r="75%">'
+    +   '<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.95"/>'
+    +   '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0.55"/>'
+    + '</radialGradient>'
+    + '<radialGradient id="grad-secondary-'+uid+'" cx="35%" cy="30%" r="75%">'
+    +   '<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.6"/>'
+    +   '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0.25"/>'
+    + '</radialGradient>'
+    + '</defs>';
   sv += '<g transform="translate(50,0)">';
 
   // ══════════ FRONT VIEW ══════════

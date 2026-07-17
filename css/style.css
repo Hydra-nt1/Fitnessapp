@@ -3120,14 +3120,15 @@ canvas.chart { display: block; width: 100%; }
 .muscle-shape:hover, .muscle-shape:focus-visible { filter: brightness(1.4); }
 .muscle-shape:focus { outline: none; }
 
+.muscle-overlay { mix-blend-mode: screen; }
 @keyframes musclePulse {
-  0%, 100% { filter: drop-shadow(0 0 0px var(--accent)); }
-  50% { filter: drop-shadow(0 0 5px var(--accent)); opacity: 0.82; }
+  0%, 100% { filter: drop-shadow(0 0 0px var(--accent)); opacity: 0.75; }
+  50% { filter: drop-shadow(0 0 6px var(--accent)); opacity: 1; }
 }
-.muscle-shape.m-primary { animation: musclePulse 2.4s ease-in-out infinite; }
-.muscle-shape.m-secondary { animation: musclePulse 3.2s ease-in-out infinite; animation-delay: 0.4s; }
+.muscle-overlay.pulse-primary { animation: musclePulse 2.4s ease-in-out infinite; }
+.muscle-overlay.pulse-secondary { animation: musclePulse 3.2s ease-in-out infinite; animation-delay: 0.4s; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) {
-  .muscle-shape.m-primary, .muscle-shape.m-secondary { animation: none; }
+  .muscle-overlay.pulse-primary, .muscle-overlay.pulse-secondary { animation: none; }
 }
 
 .mm-legend {
