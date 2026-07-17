@@ -1735,10 +1735,20 @@ canvas.chart { display: block; width: 100%; }
 
 .plan-pill-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  /* fade edges */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  padding-left: 4px;
+  padding-right: 16px;
 }
+.plan-pill-row::-webkit-scrollbar { display: none; }
 
 .plan-pill {
   padding: 8px 16px;
@@ -1752,13 +1762,14 @@ canvas.chart { display: block; width: 100%; }
   font-family: inherit;
   transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .plan-pill:hover { background: var(--surface3); color: var(--text); }
 .plan-pill:active { transform: scale(0.96); }
 .plan-pill.active {
-  background: var(--blue);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 /* ── Tag detail: exercise list ── */
