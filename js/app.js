@@ -1589,13 +1589,16 @@ async function open3DMuscleView(primary, secondary) {
   controls.maxDistance = 4.2;
   controls.update();
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  var keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.42));
+  var keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
   keyLight.position.set(2, 3.5, 3);
   scene.add(keyLight);
-  var fillLight = new THREE.DirectionalLight(0xaac0ff, 0.35);
+  var fillLight = new THREE.DirectionalLight(0xaac0ff, 0.3);
   fillLight.position.set(-3, 1, -2);
   scene.add(fillLight);
+  var rakingLight = new THREE.DirectionalLight(0xffe8cc, 0.55);
+  rakingLight.position.set(0.3, 1.35, 0.9);
+  scene.add(rakingLight);
 
   var groundGeo = new THREE.CircleGeometry(0.55, 32);
   var groundMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 });
@@ -1616,20 +1619,20 @@ async function open3DMuscleView(primary, secondary) {
   function restMaterial(dark, variantIdx) {
     var color = dark ? restColorDark : (variantIdx != null ? restToneVariants[variantIdx % restToneVariants.length] : restColor);
     return new THREE.MeshPhysicalMaterial({
-      color: color, roughness: 0.52, metalness: 0.04,
-      clearcoat: 0.18, clearcoatRoughness: 0.45,
-      bumpMap: fiberBump, bumpScale: 0.006
+      color: color, roughness: 0.58, metalness: 0.03,
+      clearcoat: 0.08, clearcoatRoughness: 0.5,
+      bumpMap: fiberBump, bumpScale: 0.014
     });
   }
   function accentMaterial() {
     return new THREE.MeshPhysicalMaterial({
       color: accent, emissive: accent, emissiveIntensity: 0.5,
-      roughness: 0.35, metalness: 0.08, clearcoat: 0.25, clearcoatRoughness: 0.3,
-      bumpMap: fiberBump, bumpScale: 0.004
+      roughness: 0.42, metalness: 0.06, clearcoat: 0.12, clearcoatRoughness: 0.35,
+      bumpMap: fiberBump, bumpScale: 0.01
     });
   }
   function tendonMaterial() {
-    return new THREE.MeshPhysicalMaterial({ color: 0xede0c8, roughness: 0.5, clearcoat: 0.1 });
+    return new THREE.MeshPhysicalMaterial({ color: 0xb89a7a, roughness: 0.65 });
   }
 
   // Adds a mesh; if `key` is a tracked muscle, colors it by primary/secondary/rest and registers it for pulsing.
@@ -1661,19 +1664,19 @@ async function open3DMuscleView(primary, secondary) {
   // ── Torso ──
   addPart(new THREE.CapsuleGeometry(0.175, 0.16, 4, 16), [0, 1.38, 0], null, null, { scale: [1, 1, 0.72] });
   addPart(new THREE.CapsuleGeometry(0.145, 0.14, 4, 16), [0, 1.19, 0], null, null, { scale: [1, 1, 0.68] });
-  // Pecs (front)
-  addPart(new THREE.SphereGeometry(0.09, 16, 12), [-0.09, 1.42, 0.115], null, 'chest', { scale: [1.25, 0.85, 0.55] });
-  addPart(new THREE.SphereGeometry(0.09, 16, 12), [0.09, 1.42, 0.115], null, 'chest', { scale: [1.25, 0.85, 0.55] });
+  // Pecs (front) — flatter, closer together, less "balloon" protrusion
+  addPart(new THREE.SphereGeometry(0.075, 16, 12), [-0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
+  addPart(new THREE.SphereGeometry(0.075, 16, 12), [0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
   // Abs (front)
   [1.32, 1.25, 1.18].forEach(function(y) {
-    addPart(new THREE.SphereGeometry(0.026, 10, 8), [-0.045, y, 0.145], null, 'abs');
-    addPart(new THREE.SphereGeometry(0.026, 10, 8), [0.045, y, 0.145], null, 'abs');
+    addPart(new THREE.SphereGeometry(0.024, 10, 8), [-0.045, y, 0.135], null, 'abs');
+    addPart(new THREE.SphereGeometry(0.024, 10, 8), [0.045, y, 0.135], null, 'abs');
   });
   // Obliques (sides of waist)
-  addPart(new THREE.CapsuleGeometry(0.035, 0.11, 4, 8), [-0.165, 1.20, 0.03], [0, 0, 0.12], 'abs');
-  addPart(new THREE.CapsuleGeometry(0.035, 0.11, 4, 8), [0.165, 1.20, 0.03], [0, 0, -0.12], 'abs');
+  addPart(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [-0.165, 1.20, 0.02], [0, 0, 0.12], 'abs');
+  addPart(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [0.165, 1.20, 0.02], [0, 0, -0.12], 'abs');
   // Traps + lower back (back)
-  addPart(new THREE.SphereGeometry(0.13, 16, 12), [0, 1.43, -0.10], null, 'upper_back', { scale: [0.95, 1.25, 0.4] });
+  addPart(new THREE.SphereGeometry(0.13, 16, 12), [0, 1.43, -0.085], null, 'upper_back', { scale: [0.95, 1.25, 0.35] });
   addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [-0.035, 1.15, -0.115], null, 'lower_back');
   addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [0.035, 1.15, -0.115], null, 'lower_back');
   // Lats (back sides)
@@ -1683,42 +1686,43 @@ async function open3DMuscleView(primary, secondary) {
   // ── Shoulders & arms ──
   [-1, 1].forEach(function(side) {
     var sx = side * 0.245;
-    addJoint([sx, 1.46, 0], 0.075);
-    addPart(new THREE.SphereGeometry(0.055, 14, 12), [sx, 1.46, 0.06], null, 'front_shoulder');
-    addPart(new THREE.SphereGeometry(0.055, 14, 12), [sx, 1.46, -0.06], null, 'rear_shoulder');
+    addJoint([sx, 1.46, 0], 0.05);
+    addPart(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, 0.04], null, 'front_shoulder');
+    addPart(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, -0.04], null, 'rear_shoulder');
 
     var armTilt = side * 0.16;
-    addPart(new THREE.CapsuleGeometry(0.048, 0.005, 4, 10), [sx + side * 0.015, 1.28, 0], [0, 0, armTilt], null, { scale: [1, 4.6, 1] });
-    addPart(new THREE.CapsuleGeometry(0.038, 0.13, 4, 10), [sx + side * 0.02, 1.28, 0.03], [0, 0, armTilt], 'biceps');
-    addPart(new THREE.CapsuleGeometry(0.038, 0.13, 4, 10), [sx + side * 0.02, 1.28, -0.03], [0, 0, armTilt], 'triceps');
+    // Upper-arm shaft (rest-colored, shows through at the sides between biceps/triceps)
+    addPart(new THREE.CapsuleGeometry(0.044, 0.16, 4, 10), [sx + side * 0.015, 1.28, 0], [0, 0, armTilt], null);
+    addPart(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, 0.028], [0, 0, armTilt], 'biceps');
+    addPart(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, -0.028], [0, 0, armTilt], 'triceps');
 
-    addJoint([sx + side * 0.035, 1.155, 0], 0.045);
+    addJoint([sx + side * 0.035, 1.155, 0], 0.032);
 
-    addPart(new THREE.CapsuleGeometry(0.042, 0.18, 4, 10), [sx + side * 0.045, 1.01, 0], [0, 0, armTilt * 0.6], 'forearms', { scale: [1, 1, 1] });
+    addPart(new THREE.CapsuleGeometry(0.04, 0.18, 4, 10), [sx + side * 0.045, 1.01, 0], [0, 0, armTilt * 0.6], 'forearms');
 
     addPart(new THREE.SphereGeometry(0.04, 12, 10), [sx + side * 0.06, 0.865, 0], null, null, { scale: [0.85, 1.15, 0.55] });
     addPart(new THREE.SphereGeometry(0.02, 8, 8), [sx + side * 0.09, 0.885, 0.01], null, null);
   });
 
   // ── Hips, glutes, legs ──
-  addPart(new THREE.SphereGeometry(0.075, 14, 12), [-0.10, 0.96, -0.05], null, 'glutes', { scale: [1.1, 1, 0.85] });
-  addPart(new THREE.SphereGeometry(0.075, 14, 12), [0.10, 0.96, -0.05], null, 'glutes', { scale: [1.1, 1, 0.85] });
+  addPart(new THREE.SphereGeometry(0.07, 14, 12), [-0.10, 0.96, -0.045], null, 'glutes', { scale: [1.1, 1, 0.75] });
+  addPart(new THREE.SphereGeometry(0.07, 14, 12), [0.10, 0.96, -0.045], null, 'glutes', { scale: [1.1, 1, 0.75] });
 
   [-1, 1].forEach(function(side) {
     var lx = side * 0.115;
-    addJoint([lx, 0.965, 0], 0.05);
-    addPart(new THREE.CapsuleGeometry(0.075, 0.005, 4, 10), [lx, 0.775, 0], null, null, { scale: [1, 8.4, 0.85] });
-    addPart(new THREE.CapsuleGeometry(0.06, 0.18, 4, 10), [lx, 0.79, 0.06], null, 'quads');
-    addPart(new THREE.CapsuleGeometry(0.06, 0.18, 4, 10), [lx, 0.79, -0.06], null, 'hamstrings');
+    addJoint([lx, 0.965, 0], 0.036);
+    // Thigh shaft (rest-colored, shows through at the sides between quads/hamstrings)
+    addPart(new THREE.CapsuleGeometry(0.072, 0.20, 4, 10), [lx, 0.78, 0], null, null, { scale: [1, 1, 0.85] });
+    addPart(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, 0.045], null, 'quads');
+    addPart(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, -0.045], null, 'hamstrings');
 
-    addJoint([lx, 0.60, 0], 0.055);
+    addJoint([lx, 0.60, 0], 0.04);
 
     addPart(new THREE.CapsuleGeometry(0.065, 0.20, 4, 10), [lx, 0.435, 0], null, 'calves');
 
-    addJoint([lx, 0.275, 0], 0.04);
+    addJoint([lx, 0.275, 0], 0.03);
 
-    var foot = addPart(new THREE.BoxGeometry(0.08, 0.05, 0.20), [lx, 0.235, 0.06], null, null);
-    foot.geometry = new THREE.CapsuleGeometry(0.045, 0.13, 4, 8);
+    var foot = addPart(new THREE.CapsuleGeometry(0.045, 0.13, 4, 8), [lx, 0.235, 0.06], null, null);
     foot.rotation.x = Math.PI / 2;
   });
 
