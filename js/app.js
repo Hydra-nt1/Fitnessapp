@@ -1174,14 +1174,34 @@ function getExerciseInfo(name) {
   return fallbacks[group] || { area: group || '', primary:[], secondary:[] };
 }
 
-// Detailed anatomical muscle-map SVG — layered silhouette + individual muscle shapes
+var MUSCLE_LABELS = {
+  front_shoulder: 'Schulter (vorne)',
+  chest: 'Brust',
+  abs: 'Bauch',
+  biceps: 'Bizeps',
+  forearms: 'Unterarm',
+  quads: 'Quadrizeps',
+  calves: 'Waden',
+  upper_back: 'Trapez',
+  rear_shoulder: 'Schulter (hinten)',
+  lats: 'Latissimus',
+  lower_back: 'Untere Rücken',
+  triceps: 'Trizeps',
+  glutes: 'Gesäß',
+  hamstrings: 'Beinbizeps'
+};
+
+// Detailed anatomical muscle-map SVG — layered silhouette + individual muscle shapes.
+// Interactive: tap a muscle for its name, switch Vorne/Hinten tabs to zoom in, highlighted muscles pulse.
 function muscleBodySVG(primary, secondary, maxWidth) {
   primary = primary || [];
   secondary = secondary || [];
+  var uid = 'mm' + Math.floor(Math.random() * 1e9);
+
   function s(m) {
-    if (primary.includes(m)) return '#4f7dff';
-    if (secondary.includes(m)) return 'rgba(79,125,255,0.55)';
-    return '#2a2a46';
+    if (primary.includes(m)) return { fill: 'var(--accent)', cls: 'm-primary' };
+    if (secondary.includes(m)) return { fill: 'var(--accent)', cls: 'm-secondary', op: '0.5' };
+    return { fill: '#2a2a46', cls: '' };
   }
   var bd = '#131320';
   var oc = '#0a0a18';
@@ -1191,6 +1211,15 @@ function muscleBodySVG(primary, secondary, maxWidth) {
   function C(x,y,r,f)   { return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+f+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
   function E(x,y,rx,ry,f){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+f+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
   function J(x,y,r)      { return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+jc+'" stroke="'+oc+'" stroke-width="0.5"/>'; }
+  // Interactive, tappable + animatable muscle shape
+  function M(d, m) {
+    var c = s(m);
+    return '<path class="muscle-shape'+(c.cls?' '+c.cls:'')+'" data-m="'+m+'" tabindex="0" d="'+d+'" fill="'+c.fill+'"'+(c.op?' fill-opacity="'+c.op+'"':'')+' stroke="'+oc+'" stroke-width="0.5"/>';
+  }
+  function EM(x,y,rx,ry,m) {
+    var c = s(m);
+    return '<ellipse class="muscle-shape'+(c.cls?' '+c.cls:'')+'" data-m="'+m+'" tabindex="0" cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+c.fill+'"'+(c.op?' fill-opacity="'+c.op+'"':'')+' stroke="'+oc+'" stroke-width="0.5"/>';
+  }
   // Muscle label with leader line — only rendered when muscle is highlighted
   // lx,ly = text position; mx,my = arrow tip on muscle; side = 'l' or 'r'
   function LA(m, lx, ly, mx, my, text, side) {
@@ -1205,10 +1234,12 @@ function muscleBodySVG(primary, secondary, maxWidth) {
   }
 
   var mw = maxWidth || 380;
-  var sv = '<svg viewBox="0 0 300 215" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:'+mw+'px;display:block;margin:0 auto">';
+  var sv = '<svg class="muscle-body-svg" id="'+uid+'-svg" viewBox="0 0 300 202" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:'+mw+'px;display:block;margin:0 auto">';
   sv += '<g transform="translate(50,0)">';
+
+  // ══════════ FRONT VIEW ══════════
+  sv += '<g class="body-view body-view-front">';
   sv += '<text x="50" y="9" text-anchor="middle" fill="#2e2e4a" font-size="6.5" font-family="Inter,sans-serif" font-weight="800" letter-spacing="1">VORNE</text>';
-  sv += '<text x="150" y="9" text-anchor="middle" fill="#2e2e4a" font-size="6.5" font-family="Inter,sans-serif" font-weight="800" letter-spacing="1">HINTEN</text>';
 
   // ── FRONT: body base (slimmer — x scaled 0.80 from center 50) ──
   sv += C(50,17,9,bd);
@@ -1227,54 +1258,68 @@ function muscleBodySVG(primary, secondary, maxWidth) {
 
   // ── FRONT: muscles ──
   // Serratus anterior fingers
-  sv += P('M30,62 L34,57 L36,61 L32,65 Z',s('abs'));
-  sv += P('M31,68 L35,63 L36,67 L32,71 Z',s('abs'));
-  sv += P('M32,74 L36,69 L37,73 L33,77 Z',s('abs'));
-  sv += P('M70,62 L66,57 L64,61 L68,65 Z',s('abs'));
-  sv += P('M69,68 L65,63 L64,67 L68,71 Z',s('abs'));
-  sv += P('M68,74 L64,69 L63,73 L67,77 Z',s('abs'));
+  sv += M('M30,62 L34,57 L36,61 L32,65 Z','abs');
+  sv += M('M31,68 L35,63 L36,67 L32,71 Z','abs');
+  sv += M('M32,74 L36,69 L37,73 L33,77 Z','abs');
+  sv += M('M70,62 L66,57 L64,61 L68,65 Z','abs');
+  sv += M('M69,68 L65,63 L64,67 L68,71 Z','abs');
+  sv += M('M68,74 L64,69 L63,73 L67,77 Z','abs');
   // Anterior deltoid
-  sv += P('M28,37 C20,35 16,42 16,57 Q17,66 22,69 Q28,71 32,64 Q33,54 31,42 Z',s('front_shoulder'));
-  sv += P('M72,37 C80,35 84,42 84,57 Q83,66 78,69 Q72,71 68,64 Q67,54 69,42 Z',s('front_shoulder'));
+  sv += M('M28,37 C20,35 16,42 16,57 Q17,66 22,69 Q28,71 32,64 Q33,54 31,42 Z','front_shoulder');
+  sv += M('M72,37 C80,35 84,42 84,57 Q83,66 78,69 Q72,71 68,64 Q67,54 69,42 Z','front_shoulder');
   // Pec — clavicular head
-  sv += P('M48,40 C44,37 38,34 31,38 C28,42 27,50 28,56 C32,60 40,62 48,60 Z',s('chest'));
-  sv += P('M52,40 C56,37 62,34 69,38 C72,42 73,50 72,56 C68,60 60,62 52,60 Z',s('chest'));
+  sv += M('M48,40 C44,37 38,34 31,38 C28,42 27,50 28,56 C32,60 40,62 48,60 Z','chest');
+  sv += M('M52,40 C56,37 62,34 69,38 C72,42 73,50 72,56 C68,60 60,62 52,60 Z','chest');
   // Pec — sternal head
-  sv += P('M48,60 C41,60 32,62 28,64 C25,68 26,74 28,76 C32,79 41,77 48,74 Z',s('chest'));
-  sv += P('M52,60 C59,60 68,62 72,64 C75,68 74,74 72,76 C68,79 59,77 52,74 Z',s('chest'));
+  sv += M('M48,60 C41,60 32,62 28,64 C25,68 26,74 28,76 C32,79 41,77 48,74 Z','chest');
+  sv += M('M52,60 C59,60 68,62 72,64 C75,68 74,74 72,76 C68,79 59,77 52,74 Z','chest');
   // Rectus abdominis 3×2
-  sv += E(46,73,3,3.5,s('abs')); sv += E(54,73,3,3.5,s('abs'));
-  sv += E(46,82,3,3.5,s('abs')); sv += E(54,82,3,3.5,s('abs'));
-  sv += E(46,91,3,3.5,s('abs')); sv += E(54,91,3,3.5,s('abs'));
+  sv += EM(46,73,3,3.5,'abs'); sv += EM(54,73,3,3.5,'abs');
+  sv += EM(46,82,3,3.5,'abs'); sv += EM(54,82,3,3.5,'abs');
+  sv += EM(46,91,3,3.5,'abs'); sv += EM(54,91,3,3.5,'abs');
   // External obliques
-  sv += P('M32,66 C29,74 28,84 32,93 Q35,97 39,95 Q40,88 40,78 Q39,69 36,65 Z',s('abs'));
-  sv += P('M68,66 C71,74 72,84 68,93 Q65,97 61,95 Q60,88 60,78 Q61,69 64,65 Z',s('abs'));
+  sv += M('M32,66 C29,74 28,84 32,93 Q35,97 39,95 Q40,88 40,78 Q39,69 36,65 Z','abs');
+  sv += M('M68,66 C71,74 72,84 68,93 Q65,97 61,95 Q60,88 60,78 Q61,69 64,65 Z','abs');
   // Biceps brachii
-  sv += E(21,57,4,10,s('biceps')); sv += E(79,57,4,10,s('biceps'));
+  sv += EM(21,57,4,10,'biceps'); sv += EM(79,57,4,10,'biceps');
   // Brachialis
-  sv += P('M16,58 C14,63 14,70 16,74 Q17,76 19,75 Q20,72 20,67 C20,62 19,58 17,57 Z',s('biceps'));
-  sv += P('M84,58 C86,63 86,70 84,74 Q83,76 81,75 Q80,72 80,67 C80,62 81,58 83,57 Z',s('biceps'));
+  sv += M('M16,58 C14,63 14,70 16,74 Q17,76 19,75 Q20,72 20,67 C20,62 19,58 17,57 Z','biceps');
+  sv += M('M84,58 C86,63 86,70 84,74 Q83,76 81,75 Q80,72 80,67 C80,62 81,58 83,57 Z','biceps');
   // Forearms
-  sv += P('M17,75 C15,85 16,96 17,102 Q19,105 22,105 Q24,105 26,102 C28,96 28,85 27,76 Z',s('forearms'));
-  sv += P('M83,75 C85,85 84,96 83,102 Q81,105 78,105 Q76,105 74,102 C72,96 72,85 73,76 Z',s('forearms'));
+  sv += M('M17,75 C15,85 16,96 17,102 Q19,105 22,105 Q24,105 26,102 C28,96 28,85 27,76 Z','forearms');
+  sv += M('M83,75 C85,85 84,96 83,102 Q81,105 78,105 Q76,105 74,102 C72,96 72,85 73,76 Z','forearms');
   // Tensor fasciae latae
-  sv += P('M29,94 Q25,98 25,105 Q27,109 31,109 Q34,107 34,101 Q34,95 32,93 Z',s('quads'));
-  sv += P('M71,94 Q75,98 75,105 Q73,109 69,109 Q66,107 66,101 Q66,95 68,93 Z',s('quads'));
+  sv += M('M29,94 Q25,98 25,105 Q27,109 31,109 Q34,107 34,101 Q34,95 32,93 Z','quads');
+  sv += M('M71,94 Q75,98 75,105 Q73,109 69,109 Q66,107 66,101 Q66,95 68,93 Z','quads');
   // Quads VL + RF + VM
-  sv += P('M29,97 C24,116 24,136 28,147 Q31,153 36,153 Q39,149 39,140 C39,124 36,109 35,97 Z',s('quads'));
-  sv += P('M36,97 C36,114 36,133 38,144 Q40,151 43,151 Q46,149 47,143 C48,130 48,111 46,97 Z',s('quads'));
-  sv += P('M36,136 Q32,139 31,147 Q32,153 36,154 Q42,153 44,148 Q45,142 44,138 Z',s('quads'));
-  sv += P('M71,97 C76,116 76,136 72,147 Q69,153 64,153 Q61,149 61,140 C61,124 64,109 65,97 Z',s('quads'));
-  sv += P('M64,97 C64,114 64,133 62,144 Q60,151 57,151 Q54,149 53,143 C52,130 52,111 54,97 Z',s('quads'));
-  sv += P('M64,136 Q68,139 69,147 Q68,153 64,154 Q58,153 56,148 Q55,142 56,138 Z',s('quads'));
+  sv += M('M29,97 C24,116 24,136 28,147 Q31,153 36,153 Q39,149 39,140 C39,124 36,109 35,97 Z','quads');
+  sv += M('M36,97 C36,114 36,133 38,144 Q40,151 43,151 Q46,149 47,143 C48,130 48,111 46,97 Z','quads');
+  sv += M('M36,136 Q32,139 31,147 Q32,153 36,154 Q42,153 44,148 Q45,142 44,138 Z','quads');
+  sv += M('M71,97 C76,116 76,136 72,147 Q69,153 64,153 Q61,149 61,140 C61,124 64,109 65,97 Z','quads');
+  sv += M('M64,97 C64,114 64,133 62,144 Q60,151 57,151 Q54,149 53,143 C52,130 52,111 54,97 Z','quads');
+  sv += M('M64,136 Q68,139 69,147 Q68,153 64,154 Q58,153 56,148 Q55,142 56,138 Z','quads');
   // Tibialis anterior
-  sv += P('M32,153 C29,164 29,175 32,182 Q34,186 37,186 Q39,184 39,179 C39,169 38,160 37,153 Z',s('calves'));
-  sv += P('M56,153 C53,164 53,175 56,182 Q58,186 61,186 Q63,184 63,179 C63,169 62,160 61,153 Z',s('calves'));
+  sv += M('M32,153 C29,164 29,175 32,182 Q34,186 37,186 Q39,184 39,179 C39,169 38,160 37,153 Z','calves');
+  sv += M('M56,153 C53,164 53,175 56,182 Q58,186 61,186 Q63,184 63,179 C63,169 62,160 61,153 Z','calves');
   // Joints
   sv += J(28,44,4); sv += J(72,44,4);
   sv += J(21,74,4); sv += J(79,74,4);
   sv += J(38,153,5); sv += J(62,153,5);
   sv += J(38,190,3); sv += J(62,190,3);
+
+  // Front figure labels (text at x=-2, arrows point right to muscle)
+  sv += LA('front_shoulder', -2, 52,  22, 55, 'Schulter',   'l');
+  sv += LA('chest',          -2, 63,  38, 63, 'Brust',      'l');
+  sv += LA('biceps',         -2, 73,  19, 73, 'Bizeps',     'l');
+  sv += LA('abs',            -2, 87,  44, 87, 'Bauch',      'l');
+  sv += LA('forearms',       -2,100,  19,100, 'Unterarm',   'l');
+  sv += LA('quads',          -2,127,  36,130, 'Quadrizeps', 'l');
+  sv += LA('calves',         -2,168,  36,170, 'Waden',      'l');
+  sv += '</g>'; // end front
+
+  // ══════════ BACK VIEW ══════════
+  sv += '<g class="body-view body-view-back">';
+  sv += '<text x="150" y="9" text-anchor="middle" fill="#2e2e4a" font-size="6.5" font-family="Inter,sans-serif" font-weight="800" letter-spacing="1">HINTEN</text>';
 
   // ── BACK: body base ──
   var D = 100;
@@ -1294,63 +1339,55 @@ function muscleBodySVG(primary, secondary, maxWidth) {
 
   // ── BACK: muscles ──
   // Rhomboids
-  sv += P('M'+(D+38)+',46 Q'+(D+32)+',52 '+(D+32)+',60 Q'+(D+36)+',65 '+(D+45)+',65 Q'+(D+50)+',62 '+(D+50)+',55 Q'+(D+48)+',47 '+(D+42)+',44 Z',s('upper_back'));
-  sv += P('M'+(D+62)+',46 Q'+(D+68)+',52 '+(D+68)+',60 Q'+(D+64)+',65 '+(D+55)+',65 Q'+(D+50)+',62 '+(D+50)+',55 Q'+(D+52)+',47 '+(D+58)+',44 Z',s('upper_back'));
+  sv += M('M'+(D+38)+',46 Q'+(D+32)+',52 '+(D+32)+',60 Q'+(D+36)+',65 '+(D+45)+',65 Q'+(D+50)+',62 '+(D+50)+',55 Q'+(D+48)+',47 '+(D+42)+',44 Z','upper_back');
+  sv += M('M'+(D+62)+',46 Q'+(D+68)+',52 '+(D+68)+',60 Q'+(D+64)+',65 '+(D+55)+',65 Q'+(D+50)+',62 '+(D+50)+',55 Q'+(D+52)+',47 '+(D+58)+',44 Z','upper_back');
   // Infraspinatus
-  sv += P('M'+(D+28)+',48 C'+(D+26)+',56 '+(D+28)+',64 '+(D+31)+',70 Q'+(D+36)+',74 '+(D+42)+',72 Q'+(D+47)+',68 '+(D+47)+',60 Q'+(D+45)+',50 '+(D+39)+',46 Z',s('rear_shoulder'));
-  sv += P('M'+(D+72)+',48 C'+(D+74)+',56 '+(D+72)+',64 '+(D+69)+',70 Q'+(D+64)+',74 '+(D+58)+',72 Q'+(D+53)+',68 '+(D+53)+',60 Q'+(D+55)+',50 '+(D+61)+',46 Z',s('rear_shoulder'));
+  sv += M('M'+(D+28)+',48 C'+(D+26)+',56 '+(D+28)+',64 '+(D+31)+',70 Q'+(D+36)+',74 '+(D+42)+',72 Q'+(D+47)+',68 '+(D+47)+',60 Q'+(D+45)+',50 '+(D+39)+',46 Z','rear_shoulder');
+  sv += M('M'+(D+72)+',48 C'+(D+74)+',56 '+(D+72)+',64 '+(D+69)+',70 Q'+(D+64)+',74 '+(D+58)+',72 Q'+(D+53)+',68 '+(D+53)+',60 Q'+(D+55)+',50 '+(D+61)+',46 Z','rear_shoulder');
   // Trapezius
-  sv += P('M'+(D+50)+',36 C'+(D+40)+',37 '+(D+29)+',40 '+(D+28)+',53 C'+(D+26)+',64 '+(D+33)+',73 '+(D+50)+',76 C'+(D+67)+',73 '+(D+74)+',64 '+(D+72)+',53 C'+(D+71)+',40 '+(D+60)+',37 '+(D+50)+',36 Z',s('upper_back'));
+  sv += M('M'+(D+50)+',36 C'+(D+40)+',37 '+(D+29)+',40 '+(D+28)+',53 C'+(D+26)+',64 '+(D+33)+',73 '+(D+50)+',76 C'+(D+67)+',73 '+(D+74)+',64 '+(D+72)+',53 C'+(D+71)+',40 '+(D+60)+',37 '+(D+50)+',36 Z','upper_back');
   // Lats
-  sv += P('M'+(D+28)+',54 C'+(D+19)+',68 '+(D+17)+',85 '+(D+22)+',96 Q'+(D+27)+',100 '+(D+32)+',96 Q'+(D+34)+',80 '+(D+32)+',66 Z',s('lats'));
-  sv += P('M'+(D+72)+',54 C'+(D+81)+',68 '+(D+83)+',85 '+(D+78)+',96 Q'+(D+73)+',100 '+(D+68)+',96 Q'+(D+66)+',80 '+(D+68)+',66 Z',s('lats'));
+  sv += M('M'+(D+28)+',54 C'+(D+19)+',68 '+(D+17)+',85 '+(D+22)+',96 Q'+(D+27)+',100 '+(D+32)+',96 Q'+(D+34)+',80 '+(D+32)+',66 Z','lats');
+  sv += M('M'+(D+72)+',54 C'+(D+81)+',68 '+(D+83)+',85 '+(D+78)+',96 Q'+(D+73)+',100 '+(D+68)+',96 Q'+(D+66)+',80 '+(D+68)+',66 Z','lats');
   // Teres major
-  sv += P('M'+(D+27)+',66 C'+(D+24)+',71 '+(D+24)+',78 '+(D+26)+',83 Q'+(D+28)+',85 '+(D+32)+',83 Q'+(D+33)+',77 '+(D+32)+',70 Z',s('lats'));
-  sv += P('M'+(D+73)+',66 C'+(D+76)+',71 '+(D+76)+',78 '+(D+74)+',83 Q'+(D+72)+',85 '+(D+68)+',83 Q'+(D+67)+',77 '+(D+68)+',70 Z',s('lats'));
+  sv += M('M'+(D+27)+',66 C'+(D+24)+',71 '+(D+24)+',78 '+(D+26)+',83 Q'+(D+28)+',85 '+(D+32)+',83 Q'+(D+33)+',77 '+(D+32)+',70 Z','lats');
+  sv += M('M'+(D+73)+',66 C'+(D+76)+',71 '+(D+76)+',78 '+(D+74)+',83 Q'+(D+72)+',85 '+(D+68)+',83 Q'+(D+67)+',77 '+(D+68)+',70 Z','lats');
   // Erector spinae
-  sv += P('M'+(D+44)+',76 C'+(D+43)+',84 '+(D+43)+',90 '+(D+44)+',96 L'+(D+47)+',96 C'+(D+47)+',90 '+(D+47)+',84 '+(D+47)+',76 Z',s('lower_back'));
-  sv += P('M'+(D+53)+',76 C'+(D+53)+',84 '+(D+53)+',90 '+(D+53)+',96 L'+(D+56)+',96 C'+(D+56)+',90 '+(D+56)+',84 '+(D+56)+',76 Z',s('lower_back'));
+  sv += M('M'+(D+44)+',76 C'+(D+43)+',84 '+(D+43)+',90 '+(D+44)+',96 L'+(D+47)+',96 C'+(D+47)+',90 '+(D+47)+',84 '+(D+47)+',76 Z','lower_back');
+  sv += M('M'+(D+53)+',76 C'+(D+53)+',84 '+(D+53)+',90 '+(D+53)+',96 L'+(D+56)+',96 C'+(D+56)+',90 '+(D+56)+',84 '+(D+56)+',76 Z','lower_back');
   // Posterior deltoid
-  sv += P('M'+(D+28)+',37 C'+(D+20)+',35 '+(D+16)+',42 '+(D+16)+',57 Q'+(D+17)+',66 '+(D+22)+',69 Q'+(D+28)+',71 '+(D+32)+',64 Q'+(D+33)+',54 '+(D+31)+',42 Z',s('rear_shoulder'));
-  sv += P('M'+(D+72)+',37 C'+(D+80)+',35 '+(D+84)+',42 '+(D+84)+',57 Q'+(D+83)+',66 '+(D+78)+',69 Q'+(D+72)+',71 '+(D+68)+',64 Q'+(D+67)+',54 '+(D+69)+',42 Z',s('rear_shoulder'));
+  sv += M('M'+(D+28)+',37 C'+(D+20)+',35 '+(D+16)+',42 '+(D+16)+',57 Q'+(D+17)+',66 '+(D+22)+',69 Q'+(D+28)+',71 '+(D+32)+',64 Q'+(D+33)+',54 '+(D+31)+',42 Z','rear_shoulder');
+  sv += M('M'+(D+72)+',37 C'+(D+80)+',35 '+(D+84)+',42 '+(D+84)+',57 Q'+(D+83)+',66 '+(D+78)+',69 Q'+(D+72)+',71 '+(D+68)+',64 Q'+(D+67)+',54 '+(D+69)+',42 Z','rear_shoulder');
   // Triceps
-  sv += P('M'+(D+18)+',41 C'+(D+14)+',53 '+(D+14)+',66 '+(D+16)+',73 Q'+(D+19)+',76 '+(D+21)+',75 Q'+(D+24)+',74 '+(D+26)+',70 C'+(D+28)+',63 '+(D+28)+',50 '+(D+26)+',41 Z',s('triceps'));
-  sv += P('M'+(D+82)+',41 C'+(D+86)+',53 '+(D+86)+',66 '+(D+84)+',73 Q'+(D+81)+',76 '+(D+79)+',75 Q'+(D+76)+',74 '+(D+74)+',70 C'+(D+72)+',63 '+(D+72)+',50 '+(D+74)+',41 Z',s('triceps'));
+  sv += M('M'+(D+18)+',41 C'+(D+14)+',53 '+(D+14)+',66 '+(D+16)+',73 Q'+(D+19)+',76 '+(D+21)+',75 Q'+(D+24)+',74 '+(D+26)+',70 C'+(D+28)+',63 '+(D+28)+',50 '+(D+26)+',41 Z','triceps');
+  sv += M('M'+(D+82)+',41 C'+(D+86)+',53 '+(D+86)+',66 '+(D+84)+',73 Q'+(D+81)+',76 '+(D+79)+',75 Q'+(D+76)+',74 '+(D+74)+',70 C'+(D+72)+',63 '+(D+72)+',50 '+(D+74)+',41 Z','triceps');
   // Forearms back
-  sv += P('M'+(D+17)+',75 C'+(D+15)+',85 '+(D+16)+',96 '+(D+17)+',102 Q'+(D+19)+',105 '+(D+22)+',105 Q'+(D+24)+',105 '+(D+26)+',102 C'+(D+28)+',96 '+(D+28)+',85 '+(D+27)+',76 Z',s('forearms'));
-  sv += P('M'+(D+83)+',75 C'+(D+85)+',85 '+(D+84)+',96 '+(D+83)+',102 Q'+(D+81)+',105 '+(D+78)+',105 Q'+(D+76)+',105 '+(D+74)+',102 C'+(D+72)+',96 '+(D+72)+',85 '+(D+73)+',76 Z',s('forearms'));
+  sv += M('M'+(D+17)+',75 C'+(D+15)+',85 '+(D+16)+',96 '+(D+17)+',102 Q'+(D+19)+',105 '+(D+22)+',105 Q'+(D+24)+',105 '+(D+26)+',102 C'+(D+28)+',96 '+(D+28)+',85 '+(D+27)+',76 Z','forearms');
+  sv += M('M'+(D+83)+',75 C'+(D+85)+',85 '+(D+84)+',96 '+(D+83)+',102 Q'+(D+81)+',105 '+(D+78)+',105 Q'+(D+76)+',105 '+(D+74)+',102 C'+(D+72)+',96 '+(D+72)+',85 '+(D+73)+',76 Z','forearms');
   // Gluteus medius
-  sv += P('M'+(D+29)+',86 Q'+(D+24)+',90 '+(D+24)+',100 Q'+(D+25)+',108 '+(D+32)+',110 Q'+(D+39)+',108 '+(D+40)+',100 Q'+(D+40)+',90 '+(D+35)+',85 Z',s('glutes'));
-  sv += P('M'+(D+71)+',86 Q'+(D+76)+',90 '+(D+76)+',100 Q'+(D+75)+',108 '+(D+68)+',110 Q'+(D+61)+',108 '+(D+60)+',100 Q'+(D+60)+',90 '+(D+65)+',85 Z',s('glutes'));
+  sv += M('M'+(D+29)+',86 Q'+(D+24)+',90 '+(D+24)+',100 Q'+(D+25)+',108 '+(D+32)+',110 Q'+(D+39)+',108 '+(D+40)+',100 Q'+(D+40)+',90 '+(D+35)+',85 Z','glutes');
+  sv += M('M'+(D+71)+',86 Q'+(D+76)+',90 '+(D+76)+',100 Q'+(D+75)+',108 '+(D+68)+',110 Q'+(D+61)+',108 '+(D+60)+',100 Q'+(D+60)+',90 '+(D+65)+',85 Z','glutes');
   // Gluteus maximus
-  sv += P('M'+(D+32)+',91 Q'+(D+25)+',96 '+(D+25)+',110 Q'+(D+26)+',122 '+(D+36)+',126 Q'+(D+44)+',125 '+(D+48)+',117 Q'+(D+49)+',105 '+(D+45)+',97 Z',s('glutes'));
-  sv += P('M'+(D+68)+',91 Q'+(D+75)+',96 '+(D+75)+',110 Q'+(D+74)+',122 '+(D+64)+',126 Q'+(D+56)+',125 '+(D+52)+',117 Q'+(D+51)+',105 '+(D+55)+',97 Z',s('glutes'));
+  sv += M('M'+(D+32)+',91 Q'+(D+25)+',96 '+(D+25)+',110 Q'+(D+26)+',122 '+(D+36)+',126 Q'+(D+44)+',125 '+(D+48)+',117 Q'+(D+49)+',105 '+(D+45)+',97 Z','glutes');
+  sv += M('M'+(D+68)+',91 Q'+(D+75)+',96 '+(D+75)+',110 Q'+(D+74)+',122 '+(D+64)+',126 Q'+(D+56)+',125 '+(D+52)+',117 Q'+(D+51)+',105 '+(D+55)+',97 Z','glutes');
   // Hamstrings BF + ST
-  sv += P('M'+(D+29)+',98 C'+(D+24)+',116 '+(D+24)+',136 '+(D+28)+',147 Q'+(D+31)+',153 '+(D+36)+',153 Q'+(D+40)+',149 '+(D+40)+',140 C'+(D+40)+',124 '+(D+37)+',109 '+(D+35)+',98 Z',s('hamstrings'));
-  sv += P('M'+(D+37)+',98 C'+(D+40)+',112 '+(D+42)+',130 '+(D+42)+',143 Q'+(D+41)+',151 '+(D+39)+',153 Q'+(D+44)+',152 '+(D+48)+',146 C'+(D+50)+',134 '+(D+49)+',113 '+(D+47)+',98 Z',s('hamstrings'));
-  sv += P('M'+(D+71)+',98 C'+(D+76)+',116 '+(D+76)+',136 '+(D+72)+',147 Q'+(D+69)+',153 '+(D+64)+',153 Q'+(D+60)+',149 '+(D+60)+',140 C'+(D+60)+',124 '+(D+63)+',109 '+(D+65)+',98 Z',s('hamstrings'));
-  sv += P('M'+(D+63)+',98 C'+(D+60)+',112 '+(D+58)+',130 '+(D+58)+',143 Q'+(D+59)+',151 '+(D+61)+',153 Q'+(D+56)+',152 '+(D+52)+',146 C'+(D+50)+',134 '+(D+51)+',113 '+(D+53)+',98 Z',s('hamstrings'));
+  sv += M('M'+(D+29)+',98 C'+(D+24)+',116 '+(D+24)+',136 '+(D+28)+',147 Q'+(D+31)+',153 '+(D+36)+',153 Q'+(D+40)+',149 '+(D+40)+',140 C'+(D+40)+',124 '+(D+37)+',109 '+(D+35)+',98 Z','hamstrings');
+  sv += M('M'+(D+37)+',98 C'+(D+40)+',112 '+(D+42)+',130 '+(D+42)+',143 Q'+(D+41)+',151 '+(D+39)+',153 Q'+(D+44)+',152 '+(D+48)+',146 C'+(D+50)+',134 '+(D+49)+',113 '+(D+47)+',98 Z','hamstrings');
+  sv += M('M'+(D+71)+',98 C'+(D+76)+',116 '+(D+76)+',136 '+(D+72)+',147 Q'+(D+69)+',153 '+(D+64)+',153 Q'+(D+60)+',149 '+(D+60)+',140 C'+(D+60)+',124 '+(D+63)+',109 '+(D+65)+',98 Z','hamstrings');
+  sv += M('M'+(D+63)+',98 C'+(D+60)+',112 '+(D+58)+',130 '+(D+58)+',143 Q'+(D+59)+',151 '+(D+61)+',153 Q'+(D+56)+',152 '+(D+52)+',146 C'+(D+50)+',134 '+(D+51)+',113 '+(D+53)+',98 Z','hamstrings');
   // Soleus
-  sv += P('M'+(D+29)+',158 C'+(D+26)+',168 '+(D+26)+',179 '+(D+28)+',185 Q'+(D+32)+',190 '+(D+38)+',190 Q'+(D+44)+',190 '+(D+48)+',185 C'+(D+50)+',179 '+(D+49)+',168 '+(D+47)+',158 Z',s('calves'));
-  sv += P('M'+(D+53)+',158 C'+(D+50)+',168 '+(D+50)+',179 '+(D+52)+',185 Q'+(D+56)+',190 '+(D+62)+',190 Q'+(D+68)+',190 '+(D+72)+',185 C'+(D+74)+',179 '+(D+73)+',168 '+(D+71)+',158 Z',s('calves'));
+  sv += M('M'+(D+29)+',158 C'+(D+26)+',168 '+(D+26)+',179 '+(D+28)+',185 Q'+(D+32)+',190 '+(D+38)+',190 Q'+(D+44)+',190 '+(D+48)+',185 C'+(D+50)+',179 '+(D+49)+',168 '+(D+47)+',158 Z','calves');
+  sv += M('M'+(D+53)+',158 C'+(D+50)+',168 '+(D+50)+',179 '+(D+52)+',185 Q'+(D+56)+',190 '+(D+62)+',190 Q'+(D+68)+',190 '+(D+72)+',185 C'+(D+74)+',179 '+(D+73)+',168 '+(D+71)+',158 Z','calves');
   // Gastrocnemius
-  sv += P('M'+(D+31)+',154 C'+(D+27)+',164 '+(D+27)+',174 '+(D+29)+',182 Q'+(D+32)+',187 '+(D+38)+',187 Q'+(D+44)+',187 '+(D+47)+',182 C'+(D+49)+',174 '+(D+48)+',164 '+(D+45)+',154 Z',s('calves'));
-  sv += P('M'+(D+55)+',154 C'+(D+51)+',164 '+(D+51)+',174 '+(D+53)+',182 Q'+(D+56)+',187 '+(D+62)+',187 Q'+(D+68)+',187 '+(D+71)+',182 C'+(D+73)+',174 '+(D+72)+',164 '+(D+69)+',154 Z',s('calves'));
+  sv += M('M'+(D+31)+',154 C'+(D+27)+',164 '+(D+27)+',174 '+(D+29)+',182 Q'+(D+32)+',187 '+(D+38)+',187 Q'+(D+44)+',187 '+(D+47)+',182 C'+(D+49)+',174 '+(D+48)+',164 '+(D+45)+',154 Z','calves');
+  sv += M('M'+(D+55)+',154 C'+(D+51)+',164 '+(D+51)+',174 '+(D+53)+',182 Q'+(D+56)+',187 '+(D+62)+',187 Q'+(D+68)+',187 '+(D+71)+',182 C'+(D+73)+',174 '+(D+72)+',164 '+(D+69)+',154 Z','calves');
   // Joints
   sv += J(D+28,44,4); sv += J(D+72,44,4);
   sv += J(D+21,74,4); sv += J(D+79,74,4);
   sv += J(D+38,153,5); sv += J(D+62,153,5);
   sv += J(D+38,190,3); sv += J(D+62,190,3);
 
-  // Left column — front figure labels (text at x=-2, arrows point right to muscle)
-  sv += LA('front_shoulder', -2, 52,  22, 55, 'Schulter',   'l');
-  sv += LA('chest',          -2, 63,  38, 63, 'Brust',      'l');
-  sv += LA('biceps',         -2, 73,  19, 73, 'Bizeps',     'l');
-  sv += LA('abs',            -2, 87,  44, 87, 'Bauch',      'l');
-  sv += LA('forearms',       -2,100,  19,100, 'Unterarm',   'l');
-  sv += LA('quads',          -2,127,  36,130, 'Quadrizeps', 'l');
-  sv += LA('calves',         -2,168,  36,170, 'Waden',      'l');
-  // Right column — back figure labels (text at x=197, arrows point left to muscle)
+  // Back figure labels (text at x=197, arrows point left to muscle)
   sv += LA('rear_shoulder',  197, 52, 178, 55, 'Schulter',  'r');
   sv += LA('triceps',        197, 62, 178, 62, 'Trizeps',   'r');
   sv += LA('upper_back',     197, 71, 165, 60, 'Trapez',    'r');
@@ -1359,16 +1396,85 @@ function muscleBodySVG(primary, secondary, maxWidth) {
   sv += LA('glutes',         197,113, 162,113, 'Gesäß',    'r');
   sv += LA('hamstrings',     197,128, 164,130, 'Hamstring', 'r');
   sv += LA('calves',         197,168, 162,170, 'Wade',      'r');
+  sv += '</g>'; // end back
 
   sv += '</g>';
-  sv += '<line x1="150" y1="6" x2="150" y2="200" stroke="#0c0c18" stroke-width="2"/>';
-  sv += '<rect x="60" y="204" width="10" height="6" rx="2" fill="#4f7dff"/>';
-  sv += '<text x="73" y="209.5" fill="#484860" font-size="7" font-family="Inter,sans-serif" font-weight="600">Hauptmuskel</text>';
-  sv += '<rect x="170" y="204" width="10" height="6" rx="2" fill="rgba(79,125,255,0.52)"/>';
-  sv += '<text x="183" y="209.5" fill="#484860" font-size="7" font-family="Inter,sans-serif" font-weight="600">Hilfsmuskel</text>';
+  sv += '<line class="mm-divider" x1="150" y1="6" x2="150" y2="200" stroke="#0c0c18" stroke-width="2"/>';
   sv += '</svg>';
-  return sv;
+
+  var tabsHtml = '<div class="mm-tabs">'
+    + '<button type="button" class="mm-tab active" data-view="both" onclick="toggleBodyView(\''+uid+'\',\'both\',this)">Beide</button>'
+    + '<button type="button" class="mm-tab" data-view="front" onclick="toggleBodyView(\''+uid+'\',\'front\',this)">Vorne</button>'
+    + '<button type="button" class="mm-tab" data-view="back" onclick="toggleBodyView(\''+uid+'\',\'back\',this)">Hinten</button>'
+    + '</div>';
+
+  var legendHtml = '<div class="mm-legend">'
+    + '<span class="mm-legend-item"><span class="mm-legend-swatch" style="background:var(--accent)"></span>Hauptmuskel</span>'
+    + '<span class="mm-legend-item"><span class="mm-legend-swatch" style="background:var(--accent);opacity:0.5"></span>Hilfsmuskel</span>'
+    + '<span class="mm-legend-item mm-legend-hint">Muskel antippen für Details</span>'
+    + '</div>';
+
+  return '<div class="mm-wrap" id="'+uid+'">' + tabsHtml + sv + legendHtml + '</div>';
 }
+
+function toggleBodyView(uid, view, btn) {
+  var wrap = document.getElementById(uid);
+  var svg = document.getElementById(uid + '-svg');
+  if (!wrap || !svg) return;
+  wrap.querySelectorAll('.mm-tab').forEach(function(b) { b.classList.toggle('active', b === btn); });
+  var front = svg.querySelector('.body-view-front');
+  var back = svg.querySelector('.body-view-back');
+  if (view === 'both') {
+    front.style.display = ''; back.style.display = '';
+    svg.setAttribute('viewBox', '0 0 300 202');
+    return;
+  }
+  var active = view === 'front' ? front : back;
+  var other = view === 'front' ? back : front;
+  active.style.display = ''; other.style.display = 'none';
+  try {
+    var bb = active.getBBox();
+    var pad = 8;
+    svg.setAttribute('viewBox', (bb.x - pad) + ' ' + (bb.y - pad) + ' ' + (bb.width + pad * 2) + ' ' + (bb.height + pad * 2));
+  } catch (e) {}
+}
+
+// Tap/click any muscle shape to see its name and role (delegated, works for every muscle map on the page)
+(function() {
+  var tip = null;
+  function hideTip() { if (tip) { tip.remove(); tip = null; } }
+  document.addEventListener('click', function(e) {
+    var shape = e.target.closest && e.target.closest('.muscle-shape');
+    if (!shape) { hideTip(); return; }
+    e.stopPropagation();
+    var key = shape.getAttribute('data-m');
+    var label = MUSCLE_LABELS[key] || key;
+    var status = shape.classList.contains('m-primary') ? 'Hauptmuskel dieser Übung(en)'
+      : shape.classList.contains('m-secondary') ? 'Hilfsmuskel'
+      : 'Nicht direkt beansprucht';
+    hideTip();
+    tip = document.createElement('div');
+    tip.className = 'mm-tooltip';
+    tip.innerHTML = '<strong>' + label + '</strong><span>' + status + '</span>';
+    document.body.appendChild(tip);
+    var rect = shape.getBoundingClientRect();
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var x = rect.left + rect.width / 2 - tw / 2;
+    var y = rect.top - th - 10;
+    if (y < 8) y = rect.bottom + 10;
+    x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+    setTimeout(hideTip, 2600);
+  });
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('muscle-shape')) {
+      e.preventDefault();
+      e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+  });
+  document.addEventListener('scroll', hideTip, true);
+})();
 
 const DAYS = [
   { key: 'monday',    short: 'Mo', label: 'Montag'     },

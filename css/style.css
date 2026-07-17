@@ -3093,3 +3093,81 @@ canvas.chart { display: block; width: 100%; }
   transition: background 0.12s, color 0.12s;
 }
 .streak-thresh-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Interactive muscle map ── */
+.mm-tabs {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.mm-tab {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: var(--surface3);
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mm-tab:hover { background: var(--surface2); color: var(--text); }
+.mm-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.muscle-shape { cursor: pointer; transition: filter 0.15s, opacity 0.15s; }
+.muscle-shape:hover, .muscle-shape:focus-visible { filter: brightness(1.4); }
+.muscle-shape:focus { outline: none; }
+
+@keyframes musclePulse {
+  0%, 100% { filter: drop-shadow(0 0 0px var(--accent)); }
+  50% { filter: drop-shadow(0 0 5px var(--accent)); opacity: 0.82; }
+}
+.muscle-shape.m-primary { animation: musclePulse 2.4s ease-in-out infinite; }
+.muscle-shape.m-secondary { animation: musclePulse 3.2s ease-in-out infinite; animation-delay: 0.4s; }
+@media (prefers-reduced-motion: reduce) {
+  .muscle-shape.m-primary, .muscle-shape.m-secondary { animation: none; }
+}
+
+.mm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.mm-legend-item { display: flex; align-items: center; gap: 6px; }
+.mm-legend-hint { font-style: italic; opacity: 0.75; }
+.mm-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.mm-tooltip {
+  position: fixed;
+  z-index: 500;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  animation: mmTooltipIn 0.15s ease-out;
+}
+.mm-tooltip strong { font-size: 13px; }
+.mm-tooltip span { color: var(--muted); font-size: 11px; font-weight: 600; }
+@keyframes mmTooltipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
