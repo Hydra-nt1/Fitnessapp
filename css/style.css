@@ -3042,3 +3042,54 @@ canvas.chart { display: block; width: 100%; }
   border-color: var(--text-primary);
   transform: scale(1.1);
 }
+
+/* Streak stats grid */
+.streak-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.streak-stat-tile {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 12px 10px;
+  text-align: center;
+}
+.streak-stat-tile.accent { border: 1px solid rgba(var(--accent-rgb, 79,126,248), 0.25); }
+.streak-stat-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.streak-stat-tile.accent .streak-stat-val { color: var(--accent); }
+.streak-stat-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-weight: 600;
+}
+.streak-stat-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.streak-thresh-row { display: flex; gap: 3px; }
+.streak-thresh-btn {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.streak-thresh-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }

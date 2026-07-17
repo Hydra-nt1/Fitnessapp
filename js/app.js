@@ -3469,6 +3469,11 @@ function selectStatDay(dayKey) {
   renderHistory(document.getElementById('content-inner'));
 }
 
+function setWeekStreakThreshold(n) {
+  localStorage.setItem('fittracker_wk_threshold', String(n));
+  renderHistory(document.getElementById('content-inner'));
+}
+
 function changeStatWeek(delta) {
   _statWeekOffset = Math.min(0, _statWeekOffset + delta);
   renderHistory(document.getElementById('content-inner'));
@@ -3518,7 +3523,7 @@ function makeMonthCalendar(sessions) {
     + '</div>';
 }
 
-function makeHeatmapSection(sessions, weekOffset) {
+function makeHeatmapSection(sessions, weekOffset, weekPlanEntries) {
   weekOffset = weekOffset || 0;
   const WEEKS = 16;
   const today = new Date();
@@ -3598,15 +3603,22 @@ function makeHeatmapSection(sessions, weekOffset) {
   }
 
   const totalWorkouts = sessions.length;
-  const streak = calcStreak(sessions);
+  const wkThreshold = parseInt(localStorage.getItem('fittracker_wk_threshold') || '3');
+  const weekStreak = calcWeekStreak(sessions, wkThreshold);
+  const plannedStreak = weekPlanEntries ? calcPlannedDayStreak(sessions, weekPlanEntries) : 0;
+
+  const thresholdBtns = [2,3,4,5].map(function(n) {
+    return '<button class="streak-thresh-btn' + (n === wkThreshold ? ' active' : '') + '" onclick="setWeekStreakThreshold(' + n + ')" title="Mindest-Workouts pro Woche">' + n + '</button>';
+  }).join('');
 
   return '<div class="stat-card" style="margin-bottom:16px">'
     + '<div class="stat-card-title">Trainingsfrequenz</div>'
-    + '<div style="display:flex;gap:16px;margin-bottom:12px">'
-    + '<div class="summary-stat" style="flex:1"><div class="summary-stat-value">' + totalWorkouts + '</div><div class="summary-stat-label">Workouts gesamt</div></div>'
-    + '<div class="summary-stat" style="flex:1"><div class="summary-stat-value">' + streak + '</div><div class="summary-stat-label">Aktuelle Serie (Tage)</div></div>'
+    + '<div class="streak-stats-grid">'
+    + '<div class="streak-stat-tile"><div class="streak-stat-val">' + totalWorkouts + '</div><div class="streak-stat-lbl">Gesamt</div></div>'
+    + '<div class="streak-stat-tile accent"><div class="streak-stat-val">' + weekStreak + '</div><div class="streak-stat-lbl">Wochen-Serie</div><div class="streak-stat-sub">≥' + wkThreshold + '×/Woche <span class="streak-thresh-row">' + thresholdBtns + '</span></div></div>'
+    + '<div class="streak-stat-tile accent"><div class="streak-stat-val">' + plannedStreak + '</div><div class="streak-stat-lbl">Plantage-Serie</div><div class="streak-stat-sub">Nur geplante Tage</div></div>'
     + '</div>'
-    + '<div style="overflow-x:auto"><svg viewBox="0 0 ' + totalW + ' ' + totalH + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:' + totalW + 'px;height:' + totalH + 'px">'
+    + '<div style="overflow-x:auto;margin-top:12px"><svg viewBox="0 0 ' + totalW + ' ' + totalH + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:' + totalW + 'px;height:' + totalH + 'px">'
     + cells + '</svg></div>'
     + '</div>';
 }
@@ -3619,6 +3631,70 @@ function calcStreak(sessions) {
   const today = new Date(); today.setHours(0,0,0,0);
   let streak = 0, cur = today.getTime();
   while (days.has(cur)) { streak++; cur -= 86400000; }
+  return streak;
+}
+
+function weekTimestamp(date) {
+  // Returns Monday 00:00 timestamp for the week containing `date`
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const dow = d.getDay();
+  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  return d.getTime();
+}
+
+function calcWeekStreak(sessions, threshold) {
+  threshold = threshold || 3;
+  // count sessions per week
+  const weekCounts = {};
+  for (const s of sessions) {
+    const ws = weekTimestamp(new Date(s.startedAt));
+    weekCounts[ws] = (weekCounts[ws] || 0) + 1;
+  }
+  const thisWeek = weekTimestamp(new Date());
+  let streak = 0;
+  let ws = thisWeek;
+  // don't penalise the current (incomplete) week — start counting from last completed week
+  ws -= 7 * 86400000;
+  while (ws >= thisWeek - 52 * 7 * 86400000) {
+    if ((weekCounts[ws] || 0) >= threshold) {
+      streak++;
+      ws -= 7 * 86400000;
+    } else break;
+  }
+  // bonus: add current week if it already hit the threshold
+  if ((weekCounts[thisWeek] || 0) >= threshold) streak++;
+  return streak;
+}
+
+function calcPlannedDayStreak(sessions, weekPlanEntries) {
+  const trainingDayKeys = new Set();
+  for (const e of weekPlanEntries) {
+    if (getEntryPlanIds(e).length > 0) trainingDayKeys.add(e.day);
+  }
+  if (trainingDayKeys.size === 0) return 0;
+
+  const sessionDaySet = new Set();
+  for (const s of sessions) {
+    const d = new Date(s.startedAt); d.setHours(0,0,0,0);
+    sessionDaySet.add(d.getTime());
+  }
+
+  const DOW_KEYS = ['so','mo','di','mi','do','fr','sa'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  let streak = 0;
+
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const dayKey = DOW_KEYS[d.getDay()];
+    if (!trainingDayKeys.has(dayKey)) continue; // Ruhetag — überspringen
+    if (sessionDaySet.has(d.getTime())) {
+      streak++;
+    } else if (i === 0) {
+      continue; // heute noch kein Training — nicht werten
+    } else {
+      break;
+    }
+  }
   return streak;
 }
 
@@ -3663,7 +3739,7 @@ async function renderHistory(el) {
   // ── Trainingsfrequenz-Heatmap ──
   const completedSessions = allSessions.filter(function(s) { return s.completed; });
   if (completedSessions.length > 0) {
-    html += makeHeatmapSection(completedSessions, _statWeekOffset);
+    html += makeHeatmapSection(completedSessions, _statWeekOffset, weekPlanEntries);
   }
 
   // ── Inaktivitäts-Warnung ──
