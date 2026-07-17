@@ -1437,10 +1437,13 @@ function muscleBodySVG(primary, secondary, maxWidth) {
   sv += '<line class="mm-divider" x1="150" y1="6" x2="150" y2="200" stroke="#0c0c18" stroke-width="2"/>';
   sv += '</svg>';
 
+  var primArr = '[' + primary.map(function(m) { return "'" + m + "'"; }).join(',') + ']';
+  var secArr = '[' + secondary.map(function(m) { return "'" + m + "'"; }).join(',') + ']';
   var tabsHtml = '<div class="mm-tabs">'
     + '<button type="button" class="mm-tab active" data-view="both" onclick="toggleBodyView(\''+uid+'\',\'both\',this)">Beide</button>'
     + '<button type="button" class="mm-tab" data-view="front" onclick="toggleBodyView(\''+uid+'\',\'front\',this)">Vorne</button>'
     + '<button type="button" class="mm-tab" data-view="back" onclick="toggleBodyView(\''+uid+'\',\'back\',this)">Hinten</button>'
+    + '<button type="button" class="mm-tab mm-tab-3d" onclick="open3DMuscleView('+primArr+','+secArr+')">🔄 3D</button>'
     + '</div>';
 
   var legendHtml = '<div class="mm-legend">'
@@ -1472,6 +1475,268 @@ function toggleBodyView(uid, view, btn) {
     var pad = 8;
     svg.setAttribute('viewBox', (bb.x - pad) + ' ' + (bb.y - pad) + ' ' + (bb.width + pad * 2) + ' ' + (bb.height + pad * 2));
   } catch (e) {}
+}
+
+// ── 3D rotatable/zoomable muscle mannequin (Three.js, lazy-loaded on demand) ──
+var _threeModulePromise = null;
+function loadThreeModules() {
+  if (!_threeModulePromise) {
+    _threeModulePromise = Promise.all([
+      import('./vendor/three.module.js'),
+      import('./vendor/OrbitControls.js')
+    ]);
+  }
+  return _threeModulePromise;
+}
+
+async function open3DMuscleView(primary, secondary) {
+  primary = primary || [];
+  secondary = secondary || [];
+
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal modal-3d">'
+    + '<div class="modal-header"><span class="modal-title">3D-Muskelmodell</span>'
+    + '<button class="modal-close" id="m3d-close">&#x2715;</button></div>'
+    + '<div class="muscle3d-host" id="m3d-host"><div class="muscle3d-loading">Lade 3D-Modell…</div></div>'
+    + '<div class="muscle3d-hint">Ziehen zum Drehen · Scrollen/Pinch zum Zoomen · Muskel antippen für Details</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('m3d-close').addEventListener('click', closeThis);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closeThis(); });
+
+  var cleanup = null;
+  function closeThis() {
+    if (cleanup) cleanup();
+    overlay.remove();
+  }
+
+  var mods;
+  try {
+    mods = await loadThreeModules();
+  } catch (e) {
+    document.getElementById('m3d-host').innerHTML = '<div class="muscle3d-loading">3D-Modell konnte nicht geladen werden.</div>';
+    return;
+  }
+  if (!document.body.contains(overlay)) return; // closed while loading
+  var THREE = mods[0];
+  var OrbitControls = mods[1].OrbitControls;
+
+  var host = document.getElementById('m3d-host');
+  host.innerHTML = '';
+  var w = host.clientWidth || 600, h = host.clientHeight || 500;
+
+  var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4f7ef8';
+  var surface2 = getComputedStyle(document.documentElement).getPropertyValue('--surface2').trim() || '#1f1f27';
+  var restColor = 0x8a5548;
+  var restColorDark = 0x6e4038;
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(surface2);
+
+  var camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+  camera.position.set(0, 1.15, 2.6);
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+  host.appendChild(renderer.domElement);
+
+  var controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.05, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minDistance = 1.1;
+  controls.maxDistance = 4.2;
+  controls.update();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  var keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+  keyLight.position.set(2, 3.5, 3);
+  scene.add(keyLight);
+  var fillLight = new THREE.DirectionalLight(0xaac0ff, 0.35);
+  fillLight.position.set(-3, 1, -2);
+  scene.add(fillLight);
+
+  var groundGeo = new THREE.CircleGeometry(0.55, 32);
+  var groundMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 });
+  var ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0.01;
+  scene.add(ground);
+
+  var body = new THREE.Group();
+  scene.add(body);
+
+  var pulseMeshes = []; // { mesh, isPrimary }
+
+  function restMaterial(dark) {
+    return new THREE.MeshStandardMaterial({ color: dark ? restColorDark : restColor, roughness: 0.55, metalness: 0.05 });
+  }
+  function accentMaterial() {
+    return new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.1 });
+  }
+  function tendonMaterial() {
+    return new THREE.MeshStandardMaterial({ color: 0xede0c8, roughness: 0.5 });
+  }
+
+  // Adds a mesh; if `key` is a tracked muscle, colors it by primary/secondary/rest and registers it for pulsing.
+  function addPart(geometry, position, rotation, key, opts) {
+    opts = opts || {};
+    var isP = key && primary.includes(key);
+    var isS = !isP && key && secondary.includes(key);
+    var mat = (isP || isS) ? accentMaterial() : restMaterial(opts.dark);
+    var mesh = new THREE.Mesh(geometry, mat);
+    mesh.position.set(position[0], position[1], position[2]);
+    if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+    if (opts.scale) mesh.scale.set(opts.scale[0], opts.scale[1], opts.scale[2]);
+    if (key) mesh.userData.muscleKey = key;
+    body.add(mesh);
+    if (isP || isS) pulseMeshes.push({ mesh: mesh, isPrimary: isP });
+    return mesh;
+  }
+  function addJoint(position, r) {
+    var mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), tendonMaterial());
+    mesh.position.set(position[0], position[1], position[2]);
+    body.add(mesh);
+    return mesh;
+  }
+
+  // ── Head & neck ──
+  addPart(new THREE.SphereGeometry(0.115, 20, 16), [0, 1.63, 0], null, null, { scale: [1, 1.15, 0.95] });
+  addPart(new THREE.CapsuleGeometry(0.06, 0.06, 4, 12), [0, 1.52, 0], null, null);
+
+  // ── Torso ──
+  addPart(new THREE.CapsuleGeometry(0.175, 0.16, 4, 16), [0, 1.38, 0], null, null, { scale: [1, 1, 0.72] });
+  addPart(new THREE.CapsuleGeometry(0.145, 0.14, 4, 16), [0, 1.19, 0], null, null, { scale: [1, 1, 0.68] });
+  // Pecs (front)
+  addPart(new THREE.SphereGeometry(0.09, 16, 12), [-0.09, 1.42, 0.115], null, 'chest', { scale: [1.25, 0.85, 0.55] });
+  addPart(new THREE.SphereGeometry(0.09, 16, 12), [0.09, 1.42, 0.115], null, 'chest', { scale: [1.25, 0.85, 0.55] });
+  // Abs (front)
+  [1.32, 1.25, 1.18].forEach(function(y) {
+    addPart(new THREE.SphereGeometry(0.026, 10, 8), [-0.045, y, 0.145], null, 'abs');
+    addPart(new THREE.SphereGeometry(0.026, 10, 8), [0.045, y, 0.145], null, 'abs');
+  });
+  // Obliques (sides of waist)
+  addPart(new THREE.CapsuleGeometry(0.035, 0.11, 4, 8), [-0.165, 1.20, 0.03], [0, 0, 0.12], 'abs');
+  addPart(new THREE.CapsuleGeometry(0.035, 0.11, 4, 8), [0.165, 1.20, 0.03], [0, 0, -0.12], 'abs');
+  // Traps + lower back (back)
+  addPart(new THREE.SphereGeometry(0.13, 16, 12), [0, 1.43, -0.10], null, 'upper_back', { scale: [0.95, 1.25, 0.4] });
+  addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [-0.035, 1.15, -0.115], null, 'lower_back');
+  addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [0.035, 1.15, -0.115], null, 'lower_back');
+  // Lats (back sides)
+  addPart(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [-0.175, 1.22, -0.06], null, 'lats');
+  addPart(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [0.175, 1.22, -0.06], null, 'lats');
+
+  // ── Shoulders & arms ──
+  [-1, 1].forEach(function(side) {
+    var sx = side * 0.245;
+    addJoint([sx, 1.46, 0], 0.075);
+    addPart(new THREE.SphereGeometry(0.055, 14, 12), [sx, 1.46, 0.06], null, 'front_shoulder');
+    addPart(new THREE.SphereGeometry(0.055, 14, 12), [sx, 1.46, -0.06], null, 'rear_shoulder');
+
+    var armTilt = side * 0.16;
+    addPart(new THREE.CapsuleGeometry(0.048, 0.005, 4, 10), [sx + side * 0.015, 1.28, 0], [0, 0, armTilt], null, { scale: [1, 4.6, 1] });
+    addPart(new THREE.CapsuleGeometry(0.038, 0.13, 4, 10), [sx + side * 0.02, 1.28, 0.03], [0, 0, armTilt], 'biceps');
+    addPart(new THREE.CapsuleGeometry(0.038, 0.13, 4, 10), [sx + side * 0.02, 1.28, -0.03], [0, 0, armTilt], 'triceps');
+
+    addJoint([sx + side * 0.035, 1.155, 0], 0.045);
+
+    addPart(new THREE.CapsuleGeometry(0.042, 0.18, 4, 10), [sx + side * 0.045, 1.01, 0], [0, 0, armTilt * 0.6], 'forearms', { scale: [1, 1, 1] });
+
+    addPart(new THREE.SphereGeometry(0.04, 12, 10), [sx + side * 0.06, 0.865, 0], null, null, { scale: [0.85, 1.15, 0.55] });
+    addPart(new THREE.SphereGeometry(0.02, 8, 8), [sx + side * 0.09, 0.885, 0.01], null, null);
+  });
+
+  // ── Hips, glutes, legs ──
+  addPart(new THREE.SphereGeometry(0.075, 14, 12), [-0.10, 0.96, -0.05], null, 'glutes', { scale: [1.1, 1, 0.85] });
+  addPart(new THREE.SphereGeometry(0.075, 14, 12), [0.10, 0.96, -0.05], null, 'glutes', { scale: [1.1, 1, 0.85] });
+
+  [-1, 1].forEach(function(side) {
+    var lx = side * 0.115;
+    addJoint([lx, 0.965, 0], 0.05);
+    addPart(new THREE.CapsuleGeometry(0.075, 0.005, 4, 10), [lx, 0.775, 0], null, null, { scale: [1, 8.4, 0.85] });
+    addPart(new THREE.CapsuleGeometry(0.06, 0.18, 4, 10), [lx, 0.79, 0.06], null, 'quads');
+    addPart(new THREE.CapsuleGeometry(0.06, 0.18, 4, 10), [lx, 0.79, -0.06], null, 'hamstrings');
+
+    addJoint([lx, 0.60, 0], 0.055);
+
+    addPart(new THREE.CapsuleGeometry(0.065, 0.20, 4, 10), [lx, 0.435, 0], null, 'calves');
+
+    addJoint([lx, 0.275, 0], 0.04);
+
+    var foot = addPart(new THREE.BoxGeometry(0.08, 0.05, 0.20), [lx, 0.235, 0.06], null, null);
+    foot.geometry = new THREE.CapsuleGeometry(0.045, 0.13, 4, 8);
+    foot.rotation.x = Math.PI / 2;
+  });
+
+  // ── Pulsing highlight animation + render loop ──
+  var raf = null;
+  var clock = new THREE.Clock();
+  function animate() {
+    raf = requestAnimationFrame(animate);
+    var t = clock.getElapsedTime();
+    pulseMeshes.forEach(function(p) {
+      var speed = p.isPrimary ? 2.6 : 3.4;
+      var base = p.isPrimary ? 0.55 : 0.32;
+      var amp = p.isPrimary ? 0.45 : 0.25;
+      p.mesh.material.emissiveIntensity = base + Math.sin(t * speed) * amp * 0.5 + amp * 0.5;
+    });
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // ── Tap/click a muscle part for its name ──
+  var raycaster = new THREE.Raycaster();
+  var pointer = new THREE.Vector2();
+  var tip = null;
+  function hideTip() { if (tip) { tip.remove(); tip = null; } }
+  function onPointerDown(e) {
+    var rect = renderer.domElement.getBoundingClientRect();
+    var cx = e.touches ? e.touches[0].clientX : e.clientX;
+    var cy = e.touches ? e.touches[0].clientY : e.clientY;
+    pointer.x = ((cx - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((cy - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    var hits = raycaster.intersectObjects(body.children, false);
+    hideTip();
+    if (!hits.length) return;
+    var key = hits[0].object.userData.muscleKey;
+    if (!key) return; // hit the plain body silhouette, not a named muscle
+    var label = MUSCLE_LABELS[key] || key;
+    var isP = primary.includes(key), isS = !isP && secondary.includes(key);
+    var status = isP ? 'Hauptmuskel dieser Übung(en)' : isS ? 'Hilfsmuskel' : 'Nicht direkt beansprucht';
+    tip = document.createElement('div');
+    tip.className = 'mm-tooltip';
+    tip.innerHTML = '<strong>' + label + '</strong><span>' + status + '</span>';
+    document.body.appendChild(tip);
+    tip.style.left = Math.max(8, Math.min(cx - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = Math.max(8, cy - tip.offsetHeight - 14) + 'px';
+    setTimeout(hideTip, 2600);
+  }
+  renderer.domElement.addEventListener('pointerup', onPointerDown);
+
+  // ── Resize handling ──
+  var resizeObserver = new ResizeObserver(function() {
+    var nw = host.clientWidth, nh = host.clientHeight;
+    if (!nw || !nh) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  });
+  resizeObserver.observe(host);
+
+  cleanup = function() {
+    cancelAnimationFrame(raf);
+    resizeObserver.disconnect();
+    renderer.domElement.removeEventListener('pointerup', onPointerDown);
+    hideTip();
+    controls.dispose();
+    renderer.dispose();
+    body.traverse(function(o) { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  };
 }
 
 // Tap/click any muscle shape to see its name and role (delegated, works for every muscle map on the page)
