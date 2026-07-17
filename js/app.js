@@ -4597,18 +4597,6 @@ async function renderProfile(el) {
     + '<button class="btn btn-ghost" style="width:100%;color:#f87171" onclick="authLogout()">Abmelden</button>'
     + '</div>';
 
-  // ── Datensicherung ──
-  html += '<div class="section-title">Datensicherung</div>'
-    + '<div class="card" style="margin-bottom:32px;display:flex;flex-direction:column;gap:10px">'
-    + '<button class="btn btn-ghost" style="width:100%" onclick="exportData()">'
-    + '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-3px"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>'
-    + 'Daten exportieren (JSON)</button>'
-    + '<label class="btn btn-ghost" style="width:100%;cursor:pointer;text-align:center;margin:0">'
-    + '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-3px"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 8l5-5 5 5M12 3v12"/></svg>'
-    + 'Daten importieren (JSON)'
-    + '<input type="file" accept=".json" style="display:none" onchange="importData(event)">'
-    + '</label>'
-    + '</div>';
 
   el.innerHTML = html;
 
@@ -5008,62 +4996,6 @@ function groupByWeek(sessions) {
   return Array.from(groups.entries());
 }
 
-// ── Export / Import ───────────────────────────────────────────
-
-async function exportData() {
-  const stores = ['plans', 'planExercises', 'workoutSessions', 'workoutSets', 'bodyStats', 'weekPlan', 'customExercises'];
-  const backup = { version: DB_VERSION, exportedAt: Date.now() };
-  for (const s of stores) {
-    backup[s] = await dbGetAll(s);
-  }
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const d = new Date();
-  const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  a.href = url;
-  a.download = 'fitness-backup-' + stamp + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  let backup;
-  try {
-    backup = JSON.parse(text);
-  } catch {
-    alert('Ungültige Datei – kein gültiges JSON.');
-    return;
-  }
-  const stores = ['plans', 'planExercises', 'workoutSessions', 'workoutSets', 'bodyStats', 'weekPlan', 'customExercises'];
-  const missing = stores.filter(function(s) { return !Array.isArray(backup[s]); });
-  if (missing.length === stores.length) {
-    alert('Die Datei enthält keine erkennbaren Fitness-Daten.');
-    return;
-  }
-  const ok = confirm(
-    'Achtung: Alle bestehenden Daten werden durch den Import überschrieben.\n\nMöchtest du fortfahren?'
-  );
-  if (!ok) return;
-  for (const storeName of stores) {
-    if (!Array.isArray(backup[storeName])) continue;
-    await new Promise(function(resolve, reject) {
-      const tx = _db.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
-      store.clear();
-      tx.oncomplete = resolve;
-      tx.onerror = function() { reject(tx.error); };
-    });
-    for (const item of backup[storeName]) {
-      await dbPut(storeName, item);
-    }
-  }
-  alert('Import abgeschlossen! Die App wird neu geladen.');
-  location.reload();
-}
 
 // ── KI Coach ──────────────────────────────────────────────────
 
