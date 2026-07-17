@@ -1489,6 +1489,44 @@ function loadThreeModules() {
   return _threeModulePromise;
 }
 
+// Procedurally draws a muscle-fiber striation pattern (original, code-generated — not traced from any
+// reference) and returns it as a reusable grayscale bump map so lighting picks up fiber-like relief.
+var _fiberBumpTexture = null;
+function makeFiberBumpTexture(THREE) {
+  if (_fiberBumpTexture) return _fiberBumpTexture;
+  var size = 256;
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, size, size);
+  for (var i = 0; i < 240; i++) {
+    var x = Math.random() * size;
+    var wobble = (Math.random() - 0.5) * 16;
+    var shade = 120 + Math.random() * 75;
+    ctx.strokeStyle = 'rgba(' + shade + ',' + shade + ',' + shade + ',0.5)';
+    ctx.lineWidth = 0.6 + Math.random() * 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, -4);
+    ctx.bezierCurveTo(x + wobble, size * 0.33, x - wobble, size * 0.66, x + wobble * 0.5, size + 4);
+    ctx.stroke();
+  }
+  for (var j = 0; j < 70; j++) {
+    var gx = Math.random() * size;
+    ctx.strokeStyle = 'rgba(35,35,35,0.22)';
+    ctx.lineWidth = 1 + Math.random();
+    ctx.beginPath();
+    ctx.moveTo(gx, -4);
+    ctx.lineTo(gx + (Math.random() - 0.5) * 12, size + 4);
+    ctx.stroke();
+  }
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(3, 4);
+  _fiberBumpTexture = tex;
+  return tex;
+}
+
 async function open3DMuscleView(primary, secondary) {
   primary = primary || [];
   secondary = secondary || [];
@@ -1571,14 +1609,27 @@ async function open3DMuscleView(primary, secondary) {
 
   var pulseMeshes = []; // { mesh, isPrimary }
 
-  function restMaterial(dark) {
-    return new THREE.MeshStandardMaterial({ color: dark ? restColorDark : restColor, roughness: 0.55, metalness: 0.05 });
+  var fiberBump = makeFiberBumpTexture(THREE);
+  var restToneVariants = [0x8a5548, 0x7e4a3f, 0x955c4c, 0x714236, 0x86503f];
+  var toneCounter = 0;
+
+  function restMaterial(dark, variantIdx) {
+    var color = dark ? restColorDark : (variantIdx != null ? restToneVariants[variantIdx % restToneVariants.length] : restColor);
+    return new THREE.MeshPhysicalMaterial({
+      color: color, roughness: 0.52, metalness: 0.04,
+      clearcoat: 0.18, clearcoatRoughness: 0.45,
+      bumpMap: fiberBump, bumpScale: 0.006
+    });
   }
   function accentMaterial() {
-    return new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.1 });
+    return new THREE.MeshPhysicalMaterial({
+      color: accent, emissive: accent, emissiveIntensity: 0.5,
+      roughness: 0.35, metalness: 0.08, clearcoat: 0.25, clearcoatRoughness: 0.3,
+      bumpMap: fiberBump, bumpScale: 0.004
+    });
   }
   function tendonMaterial() {
-    return new THREE.MeshStandardMaterial({ color: 0xede0c8, roughness: 0.5 });
+    return new THREE.MeshPhysicalMaterial({ color: 0xede0c8, roughness: 0.5, clearcoat: 0.1 });
   }
 
   // Adds a mesh; if `key` is a tracked muscle, colors it by primary/secondary/rest and registers it for pulsing.
@@ -1586,7 +1637,7 @@ async function open3DMuscleView(primary, secondary) {
     opts = opts || {};
     var isP = key && primary.includes(key);
     var isS = !isP && key && secondary.includes(key);
-    var mat = (isP || isS) ? accentMaterial() : restMaterial(opts.dark);
+    var mat = (isP || isS) ? accentMaterial() : restMaterial(opts.dark, key ? toneCounter++ : null);
     var mesh = new THREE.Mesh(geometry, mat);
     mesh.position.set(position[0], position[1], position[2]);
     if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
