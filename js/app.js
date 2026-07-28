@@ -1566,8 +1566,8 @@ async function open3DMuscleView(primary, secondary) {
 
   var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#4f7ef8';
   var surface2 = getComputedStyle(document.documentElement).getPropertyValue('--surface2').trim() || '#1f1f27';
-  var restColor = 0x8a5548;
-  var restColorDark = 0x6e4038;
+  var restColor = 0xd9a680;
+  var restColorDark = 0xc08a5f;
 
   var scene = new THREE.Scene();
   scene.background = new THREE.Color(surface2);
@@ -1596,7 +1596,7 @@ async function open3DMuscleView(primary, secondary) {
   var fillLight = new THREE.DirectionalLight(0xaac0ff, 0.3);
   fillLight.position.set(-3, 1, -2);
   scene.add(fillLight);
-  var rakingLight = new THREE.DirectionalLight(0xffe8cc, 0.55);
+  var rakingLight = new THREE.DirectionalLight(0xffe8cc, 0.3);
   rakingLight.position.set(0.3, 1.35, 0.9);
   scene.add(rakingLight);
 
@@ -1613,26 +1613,21 @@ async function open3DMuscleView(primary, secondary) {
   var pulseMeshes = []; // { mesh, isPrimary }
 
   var fiberBump = makeFiberBumpTexture(THREE);
-  var restToneVariants = [0x8a5548, 0x7e4a3f, 0x955c4c, 0x714236, 0x86503f];
+  var restToneVariants = [0xd9a680, 0xcf9b74, 0xe2ad87, 0xc99169];
   var toneCounter = 0;
 
+  // Skin-toned base body — smooth, no fiber texture, low sheen (matches a body-scan-style avatar)
   function restMaterial(dark, variantIdx) {
     var color = dark ? restColorDark : (variantIdx != null ? restToneVariants[variantIdx % restToneVariants.length] : restColor);
-    return new THREE.MeshPhysicalMaterial({
-      color: color, roughness: 0.58, metalness: 0.03,
-      clearcoat: 0.08, clearcoatRoughness: 0.5,
-      bumpMap: fiberBump, bumpScale: 0.014
-    });
+    return new THREE.MeshPhysicalMaterial({ color: color, roughness: 0.62, metalness: 0.02, clearcoat: 0.04 });
   }
+  // Glowing accent highlight for a worked muscle — the only place fiber texture shows, so it reads as "activated"
   function accentMaterial() {
     return new THREE.MeshPhysicalMaterial({
       color: accent, emissive: accent, emissiveIntensity: 0.5,
       roughness: 0.42, metalness: 0.06, clearcoat: 0.12, clearcoatRoughness: 0.35,
-      bumpMap: fiberBump, bumpScale: 0.01
+      bumpMap: fiberBump, bumpScale: 0.007
     });
-  }
-  function tendonMaterial() {
-    return new THREE.MeshPhysicalMaterial({ color: 0xb89a7a, roughness: 0.65 });
   }
 
   // Adds a mesh; if `key` is a tracked muscle, colors it by primary/secondary/rest and registers it for pulsing.
@@ -1650,8 +1645,16 @@ async function open3DMuscleView(primary, secondary) {
     if (isP || isS) pulseMeshes.push({ mesh: mesh, isPrimary: isP });
     return mesh;
   }
+  // Adds a muscle "bump" only when it's actually worked — keeps the rest-state body perfectly
+  // smooth (like a body-scan avatar) instead of always showing every muscle as a separate lump.
+  function addOverlay(geometry, position, rotation, key, opts) {
+    var isP = primary.includes(key);
+    var isS = !isP && secondary.includes(key);
+    if (!isP && !isS) return null;
+    return addPart(geometry, position, rotation, key, opts);
+  }
   function addJoint(position, r) {
-    var mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), tendonMaterial());
+    var mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), restMaterial(false, toneCounter++));
     mesh.position.set(position[0], position[1], position[2]);
     body.add(mesh);
     return mesh;
@@ -1664,37 +1667,37 @@ async function open3DMuscleView(primary, secondary) {
   // ── Torso ──
   addPart(new THREE.CapsuleGeometry(0.175, 0.16, 4, 16), [0, 1.38, 0], null, null, { scale: [1, 1, 0.72] });
   addPart(new THREE.CapsuleGeometry(0.145, 0.14, 4, 16), [0, 1.19, 0], null, null, { scale: [1, 1, 0.68] });
-  // Pecs (front) — flatter, closer together, less "balloon" protrusion
-  addPart(new THREE.SphereGeometry(0.075, 16, 12), [-0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
-  addPart(new THREE.SphereGeometry(0.075, 16, 12), [0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
+  // Pecs (front) — only shown when actually worked, so the rest-state torso stays smooth
+  addOverlay(new THREE.SphereGeometry(0.075, 16, 12), [-0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
+  addOverlay(new THREE.SphereGeometry(0.075, 16, 12), [0.072, 1.41, 0.085], null, 'chest', { scale: [1.3, 0.78, 0.4] });
   // Abs (front)
   [1.32, 1.25, 1.18].forEach(function(y) {
-    addPart(new THREE.SphereGeometry(0.024, 10, 8), [-0.045, y, 0.135], null, 'abs');
-    addPart(new THREE.SphereGeometry(0.024, 10, 8), [0.045, y, 0.135], null, 'abs');
+    addOverlay(new THREE.SphereGeometry(0.024, 10, 8), [-0.045, y, 0.135], null, 'abs');
+    addOverlay(new THREE.SphereGeometry(0.024, 10, 8), [0.045, y, 0.135], null, 'abs');
   });
   // Obliques (sides of waist)
-  addPart(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [-0.165, 1.20, 0.02], [0, 0, 0.12], 'abs');
-  addPart(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [0.165, 1.20, 0.02], [0, 0, -0.12], 'abs');
+  addOverlay(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [-0.165, 1.20, 0.02], [0, 0, 0.12], 'abs');
+  addOverlay(new THREE.CapsuleGeometry(0.032, 0.11, 4, 8), [0.165, 1.20, 0.02], [0, 0, -0.12], 'abs');
   // Traps + lower back (back)
-  addPart(new THREE.SphereGeometry(0.13, 16, 12), [0, 1.43, -0.085], null, 'upper_back', { scale: [0.95, 1.25, 0.35] });
-  addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [-0.035, 1.15, -0.115], null, 'lower_back');
-  addPart(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [0.035, 1.15, -0.115], null, 'lower_back');
+  addOverlay(new THREE.SphereGeometry(0.13, 16, 12), [0, 1.43, -0.085], null, 'upper_back', { scale: [0.95, 1.25, 0.35] });
+  addOverlay(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [-0.035, 1.15, -0.115], null, 'lower_back');
+  addOverlay(new THREE.CapsuleGeometry(0.03, 0.09, 4, 8), [0.035, 1.15, -0.115], null, 'lower_back');
   // Lats (back sides)
-  addPart(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [-0.175, 1.22, -0.06], null, 'lats');
-  addPart(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [0.175, 1.22, -0.06], null, 'lats');
+  addOverlay(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [-0.175, 1.22, -0.06], null, 'lats');
+  addOverlay(new THREE.CapsuleGeometry(0.05, 0.16, 4, 10), [0.175, 1.22, -0.06], null, 'lats');
 
   // ── Shoulders & arms ──
   [-1, 1].forEach(function(side) {
     var sx = side * 0.245;
     addJoint([sx, 1.46, 0], 0.05);
-    addPart(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, 0.04], null, 'front_shoulder');
-    addPart(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, -0.04], null, 'rear_shoulder');
+    addOverlay(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, 0.04], null, 'front_shoulder');
+    addOverlay(new THREE.SphereGeometry(0.045, 14, 12), [sx, 1.46, -0.04], null, 'rear_shoulder');
 
     var armTilt = side * 0.16;
     // Upper-arm shaft (rest-colored, shows through at the sides between biceps/triceps)
     addPart(new THREE.CapsuleGeometry(0.044, 0.16, 4, 10), [sx + side * 0.015, 1.28, 0], [0, 0, armTilt], null);
-    addPart(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, 0.028], [0, 0, armTilt], 'biceps');
-    addPart(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, -0.028], [0, 0, armTilt], 'triceps');
+    addOverlay(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, 0.028], [0, 0, armTilt], 'biceps');
+    addOverlay(new THREE.CapsuleGeometry(0.03, 0.12, 4, 10), [sx + side * 0.02, 1.28, -0.028], [0, 0, armTilt], 'triceps');
 
     addJoint([sx + side * 0.035, 1.155, 0], 0.032);
 
@@ -1713,8 +1716,8 @@ async function open3DMuscleView(primary, secondary) {
     addJoint([lx, 0.965, 0], 0.036);
     // Thigh shaft (rest-colored, shows through at the sides between quads/hamstrings)
     addPart(new THREE.CapsuleGeometry(0.072, 0.20, 4, 10), [lx, 0.78, 0], null, null, { scale: [1, 1, 0.85] });
-    addPart(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, 0.045], null, 'quads');
-    addPart(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, -0.045], null, 'hamstrings');
+    addOverlay(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, 0.045], null, 'quads');
+    addOverlay(new THREE.CapsuleGeometry(0.05, 0.17, 4, 10), [lx, 0.79, -0.045], null, 'hamstrings');
 
     addJoint([lx, 0.60, 0], 0.04);
 
