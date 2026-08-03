@@ -2336,7 +2336,7 @@ async function renderHeute(el) {
       for (const pid of selectedPlanIds) {
         const plan = plans.find(p => p.id === pid);
         if (!plan) continue;
-        const exercises = await dbGetAll('planExercises', 'planId', pid);
+        const exercises = sortByOrder(await dbGetAll('planExercises', 'planId', pid));
         const exPreview = exercises.slice(0, 3).map(e => esc(e.name)).join(' · ')
           + (exercises.length > 3 ? ' +' + (exercises.length - 3) + ' weitere' : '');
         html += '<div class="today-card" style="margin-bottom:8px;border-left:3px solid ' + muscleGroupColor(plan.muscleGroup) + '">'
@@ -2379,7 +2379,7 @@ async function renderHeute(el) {
 
   let planProgressHtml = '';
   for (const plan of assignedPlans) {
-    const planExercises = await dbGetAll('planExercises', 'planId', plan.id);
+    const planExercises = sortByOrder(await dbGetAll('planExercises', 'planId', plan.id));
     if (!planExercises.length) continue;
 
     // Only include exercises that have at least one weekExercises entry
@@ -2843,7 +2843,7 @@ async function renderTagDetail(el, dayKey, weekOffset) {
     for (const planId of activePlanIds) {
       const plan = plans.find(p => p.id === planId);
       if (!plan) continue;
-      const exercises = await dbGetAll('planExercises', 'planId', planId);
+      const exercises = sortByOrder(await dbGetAll('planExercises', 'planId', planId));
 
       exercises.forEach(function(ex) {
         var info = getExerciseInfo(ex.name);
@@ -3127,6 +3127,13 @@ function tagExFilter(query, planId, dayKey, muscleGroup, weekOffset) {
   results.innerHTML = html;
 }
 
+// Exercises without an explicit `order` (legacy rows) keep their original insertion order via id.
+function sortByOrder(list) {
+  return list.slice().sort(function(a, b) {
+    return (a.order != null ? a.order : a.id) - (b.order != null ? b.order : b.id);
+  });
+}
+
 async function addTagEx(exName, planId, dayKey, weekOffset) {
   weekOffset = weekOffset || 0;
   await dbAdd('planExercises', { planId: planId, name: exName, sets: 3, reps: 10, weight: 0 });
@@ -3143,16 +3150,24 @@ async function moveTagEx(exId, direction, dayKey, weekOffset) {
   weekOffset = weekOffset || 0;
   const ex = await dbGet('planExercises', exId);
   if (!ex) return;
-  const all = await dbGetAll('planExercises', 'planId', ex.planId);
+  const all = sortByOrder(await dbGetAll('planExercises', 'planId', ex.planId));
   const idx = all.findIndex(function(e) { return e.id === exId; });
   const swapIdx = idx + direction;
   if (swapIdx < 0 || swapIdx >= all.length) return;
-  const other = all[swapIdx];
-  const tmpName = ex.name, tmpSets = ex.sets, tmpReps = ex.reps, tmpWeight = ex.weight;
-  ex.name = other.name; ex.sets = other.sets; ex.reps = other.reps; ex.weight = other.weight;
-  other.name = tmpName; other.sets = tmpSets; other.reps = tmpReps; other.weight = tmpWeight;
-  await dbPut('planExercises', ex);
-  await dbPut('planExercises', other);
+
+  // Only ever swap position (`order`) — never the exercise's own name/sets/reps/weight/note,
+  // so history (weekExercises, linked by planExerciseId) and notes stay attached to the right exercise.
+  const needsBackfill = all.some(function(e) { return e.order == null; });
+  if (needsBackfill) {
+    all.forEach(function(e, i) { e.order = i; });
+  }
+  const cur = all[idx], other = all[swapIdx];
+  const tmpOrder = cur.order;
+  cur.order = other.order;
+  other.order = tmpOrder;
+
+  const toSave = needsBackfill ? all : [cur, other];
+  for (const row of toSave) await dbPut('planExercises', row);
   go('tag:' + dayKey + ':' + weekOffset);
 }
 
@@ -3243,7 +3258,7 @@ async function setDayPlan(dayKey, planId) {
 async function renderTemplateDetail(el, planId) {
   const plan = await dbGet('plans', planId);
   if (!plan) { go('heute'); return; }
-  const exs = await dbGetAll('planExercises', 'planId', planId);
+  const exs = sortByOrder(await dbGetAll('planExercises', 'planId', planId));
 
   let html = '<button class="back-btn" onclick="go(\'heute\')">'
     + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
@@ -3481,7 +3496,7 @@ async function addExerciseToPlan(planId, exName) {
 async function startWorkout(planId) {
   const plan = await dbGet('plans', planId);
   if (!plan) return;
-  const planExs = await dbGetAll('planExercises', 'planId', planId);
+  const planExs = sortByOrder(await dbGetAll('planExercises', 'planId', planId));
 
   const exercises = [];
   for (const pe of planExs) {
