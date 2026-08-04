@@ -3086,7 +3086,7 @@ function tagExFilter(query, planId, dayKey, muscleGroup, weekOffset) {
       for (const ex of exList) {
         const safe = ex.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const exInfo = getExerciseInfo(ex);
-        html += '<div class="tag-ex-result" onpointerdown="event.preventDefault();addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
+        html += '<div class="tag-ex-result" onpointerdown="this.dataset.tx=event.clientX;this.dataset.ty=event.clientY" onpointerup="if(Math.hypot(event.clientX-this.dataset.tx,event.clientY-this.dataset.ty)<10)addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
           + '<div class="ter-info"><span class="ter-name">' + esc(ex) + '</span>'
           + (exInfo.area ? '<span class="ter-area">' + esc(exInfo.area) + '</span>' : '')
           + '</div>'
@@ -3105,7 +3105,7 @@ function tagExFilter(query, planId, dayKey, muscleGroup, weekOffset) {
       for (const ex of matches) {
         const safe = ex.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const exInfo = getExerciseInfo(ex);
-        html += '<div class="tag-ex-result" onpointerdown="event.preventDefault();addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
+        html += '<div class="tag-ex-result" onpointerdown="this.dataset.tx=event.clientX;this.dataset.ty=event.clientY" onpointerup="if(Math.hypot(event.clientX-this.dataset.tx,event.clientY-this.dataset.ty)<10)addTagEx(\'' + safe + '\',' + planId + ',\'' + dayKey + '\',' + weekOffset + ')">'
           + '<div class="ter-info"><span class="ter-name">' + esc(ex) + '</span>'
           + (exInfo.area ? '<span class="ter-area">' + esc(exInfo.area) + '</span>' : '')
           + '</div>'
