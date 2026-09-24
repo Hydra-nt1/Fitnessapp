@@ -1,4 +1,4 @@
-const CACHE = 'fittracker-v98';
+const CACHE = 'fittracker-v99';
 const FILES = ['./', './index.html', './css/style.css', './js/db.js', './js/app.js', './manifest.json', './icon.svg', './js/vendor/three.module.js', './js/vendor/OrbitControls.js'];
 
 self.addEventListener('install', e => {

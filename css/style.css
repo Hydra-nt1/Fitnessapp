@@ -3216,3 +3216,22 @@ canvas.chart { display: block; width: 100%; }
   border-color: var(--accent);
 }
 .mm-tab-3d:hover { background: var(--accent); opacity: 0.88; }
+
+/* Attendance check-in/check-out button */
+.today-attend-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.attend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  animation: attendPulse 1.4s ease-in-out infinite;
+}
+@keyframes attendPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}

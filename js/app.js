@@ -1859,6 +1859,7 @@ let activePage = 'heute';
 let activeWorkout = null;
 let workoutStartTime = null;
 let mainTimerInterval = null;
+let _attendanceTimerInterval = null;
 let restTimerInterval = null;
 let restSecsRemaining = 0;
 let restSecsTotal = parseInt(localStorage.getItem('restSecs') || '90');
@@ -2333,12 +2334,23 @@ async function renderHeute(el) {
         + '<button class="btn btn-ghost" style="margin-top:8px" onclick="go(\'tag:' + selectedKey + ':' + offset + '\')">Tag einrichten</button>'
         + '</div>';
     } else {
+      const activeAtt = getActiveAttendance();
       for (const pid of selectedPlanIds) {
         const plan = plans.find(p => p.id === pid);
         if (!plan) continue;
         const exercises = sortByOrder(await dbGetAll('planExercises', 'planId', pid));
         const exPreview = exercises.slice(0, 3).map(e => esc(e.name)).join(' · ')
           + (exercises.length > 3 ? ' +' + (exercises.length - 3) + ' weitere' : '');
+        const safePlanName = plan.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        let attendHtml;
+        if (activeAtt && activeAtt.planId === pid) {
+          attendHtml = '<button class="btn btn-ghost today-attend-btn active" style="font-size:12px;padding:4px 10px;display:flex;align-items:center;gap:6px" onclick="endAttendance()">'
+            + '<span class="attend-dot"></span><span id="attend-timer-' + pid + '">' + formatTimer(Date.now() - activeAtt.startedAt) + '</span> · Beenden</button>';
+        } else if (!activeAtt) {
+          attendHtml = '<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px" onclick="startAttendance(' + pid + ',\'' + safePlanName + '\')" title="Nur Start-/Endzeit festhalten, ohne Sätze einzutragen">Teilgenommen</button>';
+        } else {
+          attendHtml = '';
+        }
         html += '<div class="today-card" style="margin-bottom:8px;border-left:3px solid ' + muscleGroupColor(plan.muscleGroup) + '">'
           + '<div class="today-card-info">'
           + '<div class="today-card-name">' + esc(plan.name) + '</div>'
@@ -2347,6 +2359,7 @@ async function renderHeute(el) {
           + '</div>'
           + '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">'
           + '<button class="today-start-btn" onclick="startWorkout(' + pid + ')">' + iconPlay(16) + ' Starten</button>'
+          + attendHtml
           + '<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px" onclick="go(\'tag:' + selectedKey + ':' + offset + '\')">Details →</button>'
           + '</div>'
           + '</div>';
@@ -2455,6 +2468,16 @@ async function renderHeute(el) {
   if (hasData) {
     const canvas = el.querySelector('#vol-history-chart');
     drawWeeklyBarChart(canvas, volHistory);
+  }
+
+  if (_attendanceTimerInterval) clearInterval(_attendanceTimerInterval);
+  const liveAtt = getActiveAttendance();
+  if (liveAtt) {
+    _attendanceTimerInterval = setInterval(function() {
+      const t = document.getElementById('attend-timer-' + liveAtt.planId);
+      if (!t) { clearInterval(_attendanceTimerInterval); return; }
+      t.textContent = formatTimer(Date.now() - liveAtt.startedAt);
+    }, 1000);
   }
 }
 
@@ -3489,6 +3512,39 @@ function showAddExerciseModal(targetPlanId, onSelect) {
 async function addExerciseToPlan(planId, exName) {
   await dbAdd('planExercises', { planId: planId, name: exName, sets: 3, reps: 10, weight: 0 });
   go('template:' + planId);
+}
+
+// ── Simple attendance tracking (check-in / check-out without set logging) ──
+
+function getActiveAttendance() {
+  try {
+    var raw = localStorage.getItem('fittracker_attendance');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+async function startAttendance(planId, planName) {
+  const sessionId = await dbAdd('workoutSessions', {
+    planId: planId, planName: planName,
+    startedAt: Date.now(), completedAt: null, duration: 0, completed: false, attendanceOnly: true
+  });
+  localStorage.setItem('fittracker_attendance', JSON.stringify({ sessionId: sessionId, planId: planId, startedAt: Date.now() }));
+  scheduleSave();
+  go('heute');
+}
+
+async function endAttendance() {
+  const att = getActiveAttendance();
+  if (!att) return;
+  const session = await dbGet('workoutSessions', att.sessionId);
+  const durationSec = Math.round((Date.now() - att.startedAt) / 1000);
+  if (session) {
+    await dbPut('workoutSessions', Object.assign({}, session, { completedAt: Date.now(), duration: durationSec, completed: true }));
+  }
+  localStorage.removeItem('fittracker_attendance');
+  scheduleSave();
+  showToast('✅ Training beendet — ' + formatTimer(durationSec * 1000));
+  go('heute');
 }
 
 // ── Start Workout ─────────────────────────────────────────────
