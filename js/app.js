@@ -2282,7 +2282,7 @@ async function renderHeute(el) {
       + '<div class="streak-left"><div class="streak-fire">' + fire + '</div></div>'
       + '<div class="streak-center">'
       + '<div class="streak-count">' + streak + ' Trainingstag' + (streak !== 1 ? 'e' : '') + '</div>'
-      + '<div class="streak-label">Serie · Ruhetage zählen nicht</div>'
+      + '<div class="streak-label">Serie · bricht erst nach 3 verpassten Trainingstagen</div>'
       + milestoneHtml
       + '</div>'
       + '<div class="streak-right">' + streakMilestones.filter(function(m){ return m <= streak; }).map(function(m){
@@ -4206,7 +4206,10 @@ function calcPlannedDayStreak(sessions, weekPlanEntries) {
 
   const DOW_KEYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const today = new Date(); today.setHours(0,0,0,0);
+  // Grace period: up to MAX_MISSES planned days in a row may be skipped; the next miss breaks the streak
+  const MAX_MISSES = 2;
   let streak = 0;
+  let misses = 0;
 
   for (let i = 0; i < 365; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
@@ -4214,9 +4217,10 @@ function calcPlannedDayStreak(sessions, weekPlanEntries) {
     if (!trainingDayKeys.has(dayKey)) continue; // Ruhetag — überspringen
     if (sessionDaySet.has(d.getTime())) {
       streak++;
+      misses = 0;
     } else if (i === 0) {
       continue; // heute noch kein Training — nicht werten
-    } else {
+    } else if (++misses > MAX_MISSES) {
       break;
     }
   }
