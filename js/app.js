@@ -2262,7 +2262,8 @@ async function renderHeute(el) {
   const volHistory = getWeeklyVolumeHistory(8, sessions, allSets);
 
   // Streak
-  const streak = calcStreak(sessions.filter(function(s) { return s.completed; }));
+  // Counts only days with a planned training — rest days neither add to nor break the streak
+  const streak = calcPlannedDayStreak(sessions.filter(function(s) { return s.completed; }), weekPlanEntries);
   const streakMilestones = [3, 7, 14, 30, 60, 100];
   const nextMilestone = streakMilestones.find(function(m) { return m > streak; }) || null;
 
@@ -2275,13 +2276,13 @@ async function renderHeute(el) {
   if (streak > 0) {
     const fire = streak >= 7 ? '🔥' : streak >= 3 ? '⚡' : '✨';
     const milestoneHtml = nextMilestone
-      ? '<div class="streak-next">Noch ' + (nextMilestone - streak) + ' Tag' + (nextMilestone - streak !== 1 ? 'e' : '') + ' bis ' + nextMilestone + '-Tage-Serie</div>'
+      ? '<div class="streak-next">Noch ' + (nextMilestone - streak) + ' Trainingstag' + (nextMilestone - streak !== 1 ? 'e' : '') + ' bis zur ' + nextMilestone + 'er-Serie</div>'
       : '<div class="streak-next">Unglaublich — halte die Serie!</div>';
     html += '<div class="streak-card">'
       + '<div class="streak-left"><div class="streak-fire">' + fire + '</div></div>'
       + '<div class="streak-center">'
-      + '<div class="streak-count">' + streak + ' Tag' + (streak !== 1 ? 'e' : '') + '</div>'
-      + '<div class="streak-label">Aktuelle Serie</div>'
+      + '<div class="streak-count">' + streak + ' Trainingstag' + (streak !== 1 ? 'e' : '') + '</div>'
+      + '<div class="streak-label">Serie · Ruhetage zählen nicht</div>'
       + milestoneHtml
       + '</div>'
       + '<div class="streak-right">' + streakMilestones.filter(function(m){ return m <= streak; }).map(function(m){
@@ -3791,8 +3792,8 @@ async function finishWorkout() {
   scheduleSave();
 
   const prs = await checkPRs(exercises, sessionId);
-  const allSessionsNow = await dbGetAll('workoutSessions');
-  const streak = calcStreak(allSessionsNow.filter(function(s) { return s.completed; }));
+  const [allSessionsNow, weekPlanNow] = await Promise.all([dbGetAll('workoutSessions'), dbGetAll('weekPlan')]);
+  const streak = calcPlannedDayStreak(allSessionsNow.filter(function(s) { return s.completed; }), weekPlanNow);
   clearInterval(mainTimerInterval);
   dismissRest();
   activeWorkout = null;
@@ -3842,7 +3843,7 @@ function showSummaryModal(exercises, duration, prs, streak) {
         const fire = streak >= 7 ? '🔥' : streak >= 3 ? '⚡' : '✨';
         return '<div class="summary-streak' + (isMilestone ? ' milestone' : '') + '">'
           + '<span class="summary-streak-fire">' + fire + '</span>'
-          + '<span class="summary-streak-text">' + streak + '-Tage-Serie' + (isMilestone ? ' — Meilenstein erreicht! 🏅' : '') + '</span>'
+          + '<span class="summary-streak-text">' + streak + ' Trainingstage in Folge' + (isMilestone ? ' — Meilenstein erreicht! 🏅' : '') + '</span>'
           + '</div>';
       })() : '')
     + '<div class="summary-ex-list">' + exRows + '</div>'
@@ -4158,17 +4159,6 @@ function makeHeatmapSection(sessions, weekOffset, weekPlanEntries) {
     + '</div>';
 }
 
-function calcStreak(sessions) {
-  if (!sessions.length) return 0;
-  const days = new Set(sessions.map(function(s) {
-    const d = new Date(s.startedAt); d.setHours(0,0,0,0); return d.getTime();
-  }));
-  const today = new Date(); today.setHours(0,0,0,0);
-  let streak = 0, cur = today.getTime();
-  while (days.has(cur)) { streak++; cur -= 86400000; }
-  return streak;
-}
-
 function weekTimestamp(date) {
   // Returns Monday 00:00 timestamp for the week containing `date`
   const d = new Date(date); d.setHours(0,0,0,0);
@@ -4214,7 +4204,7 @@ function calcPlannedDayStreak(sessions, weekPlanEntries) {
     sessionDaySet.add(d.getTime());
   }
 
-  const DOW_KEYS = ['so','mo','di','mi','do','fr','sa'];
+  const DOW_KEYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const today = new Date(); today.setHours(0,0,0,0);
   let streak = 0;
 
@@ -4337,7 +4327,7 @@ async function renderHistory(el) {
     if (s.startedAt >= selWeekStart && s.startedAt <= selWeekEnd + 86399999) {
       const d = new Date(s.startedAt);
       const dow = d.getDay();
-      const keys = ['so','mo','di','mi','do','fr','sa'];
+      const keys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
       trainedDaysThisWeek.add(keys[dow]);
     }
   }
@@ -4998,7 +4988,7 @@ async function renderProfile(el) {
   weekStart.setDate(now.getDate() + diffToMon);
   weekStart.setHours(0, 0, 0, 0);
   const thisWeek = completed.filter(function(s) { return s.startedAt >= weekStart.getTime(); }).length;
-  const streak = calcStreak(completed);
+  const streak = calcWeeksInARow(completed);
 
   // BMI
   const latestWeight = statsSort.length > 0 ? statsSort[0].weight : (profile.weight || null);
@@ -5288,7 +5278,7 @@ function resetPin() {
   location.reload();
 }
 
-function calcStreak(completed) {
+function calcWeeksInARow(completed) {
   if (!completed.length) return 0;
   function isoWeekKey(ts) {
     const d = new Date(ts);
