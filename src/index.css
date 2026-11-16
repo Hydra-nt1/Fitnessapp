@@ -2,33 +2,47 @@
 
 @custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
 
+/* ── Design „Volt“ ─────────────────────────────────────────────────────
+   Warmes Tiefschwarz / gebrochenes Weiß, Neon-Akzent, große Display-Zahlen. */
 :root {
-  --accent: #4f7ef8;
-  --bg: #0b0d12;
-  --surface: #14171f;
-  --surface-2: #1b1f29;
-  --surface-3: #252a36;
-  --border: #262b37;
-  --text: #eef1f7;
-  --muted: #8b93a7;
-  --good: #22c55e;
-  --warn: #f59e0b;
-  --bad: #ef4444;
+  --accent: #c8ff2e;
+  --accent-ink: #0b0c08; /* Text auf Akzentflächen – wird per JS aus der Helligkeit berechnet */
+  --accent-fg: var(--accent); /* Akzent als Textfarbe (im Hellmodus abgedunkelt) */
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --surface-3: #2a2a30;
+  --border: rgb(255 255 255 / 0.075);
+  --text: #f4f4f0;
+  --muted: #8d8d95;
+  --good: #3ddc84;
+  --warn: #ffb547;
+  --bad: #ff5a5f;
+  --glass: rgb(22 22 26 / 0.72);
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -12px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
 [data-theme='light'] {
-  --bg: #f3f5f9;
+  --accent-fg: color-mix(in oklab, var(--accent) 52%, #000);
+  --bg: #f2f1ec;
   --surface: #ffffff;
-  --surface-2: #f0f2f6;
-  --surface-3: #e4e8ef;
-  --border: #e1e5ec;
-  --text: #121620;
-  --muted: #667085;
+  --surface-2: #ecebe5;
+  --surface-3: #deddd6;
+  --border: rgb(0 0 0 / 0.07);
+  --text: #121212;
+  --muted: #6c6c70;
+  --good: #16a34a;
+  --warn: #d97706;
+  --bad: #e5484d;
+  --glass: rgb(255 255 255 / 0.72);
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 10px 30px -14px rgb(0 0 0 / 0.18);
   color-scheme: light;
 }
 
 @theme inline {
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-fg: var(--accent-fg);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -39,7 +53,8 @@
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Geist', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -49,9 +64,18 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
 }
 body {
   min-height: 100dvh;
+  background:
+    radial-gradient(900px 420px at 85% -120px, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 input,
 textarea,
@@ -70,6 +94,11 @@ input[type='number'] {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.025em;
+}
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -82,6 +111,44 @@ input[type='number'] {
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+}
+.elev {
+  box-shadow: var(--shadow);
+}
+.accent-soft {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-fg);
+}
+.accent-ring {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+/* Volt-Hero: Akzentfläche mit feinem Verlauf und Korn */
+.hero-accent {
+  background:
+    radial-gradient(110% 80% at 100% 0%, color-mix(in srgb, #fff 35%, transparent), transparent 60%),
+    linear-gradient(165deg, var(--accent) 35%, color-mix(in oklab, var(--accent) 90%, #000));
+  color: var(--accent-ink);
+}
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.08;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 @keyframes sheet-in {
   from {
     transform: translateY(100%);
@@ -98,13 +165,23 @@ input[type='number'] {
     opacity: 1;
   }
 }
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes pop {
   0% {
-    transform: scale(0.85);
+    transform: scale(0.9);
     opacity: 0;
   }
   60% {
-    transform: scale(1.04);
+    transform: scale(1.03);
   }
   100% {
     transform: scale(1);
@@ -112,7 +189,7 @@ input[type='number'] {
   }
 }
 .anim-sheet {
-  animation: sheet-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: sheet-in 0.32s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 .anim-fade {
   animation: fade-in 0.2s ease-out;
@@ -120,9 +197,14 @@ input[type='number'] {
 .anim-pop {
   animation: pop 0.35s ease-out;
 }
-.accent-soft {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+.anim-rise {
+  animation: rise 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
-.accent-ring {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet,
+  .anim-fade,
+  .anim-pop,
+  .anim-rise {
+    animation: none;
+  }
 }

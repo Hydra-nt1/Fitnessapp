@@ -134,7 +134,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   days_per_week: null,
   equipment: null,
   theme: 'dark',
-  accent: '#4f7ef8',
+  accent: '#c8ff2e',
   rest_seconds: 90,
   weight_increment: 2.5,
   bar_weight: 20,

@@ -141,11 +141,11 @@ export function CoachPage() {
   return (
     <div className="flex flex-col min-h-[calc(100dvh-140px)] md:min-h-[calc(100dvh-40px)]">
       <header className="flex items-center gap-2 pt-5 pb-3">
-        <div className="w-10 h-10 rounded-2xl bg-accent text-white grid place-items-center">
+        <div className="w-10 h-10 rounded-2xl bg-accent text-accent-ink grid place-items-center">
           <Icon name="sparkles" size={20} />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-extrabold leading-tight">KI-Coach</h1>
+          <h1 className="text-xl font-display font-bold leading-tight">KI-Coach</h1>
           <div className="text-xs text-muted">Kennt deine Pläne, Workouts & Erholung</div>
         </div>
         {msgs.length > 0 && <IconButton icon="trash" label="Verlauf löschen" onClick={() => setMsgs([])} />}
@@ -168,14 +168,14 @@ export function CoachPage() {
         )}
         {msgs.map((m, i) => (
           <div key={i} className={cx('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-            <div className={cx('max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed', m.role === 'user' ? 'bg-accent text-white rounded-br-md' : 'bg-surface border border-line rounded-bl-md')}>
+            <div className={cx('max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed', m.role === 'user' ? 'bg-accent text-accent-ink rounded-br-md' : 'bg-surface border border-line rounded-bl-md')}>
               {m.role === 'user' ? m.content : <Markdown text={m.content} />}
               {m.proposals?.map((p, j) => {
                 const done = m.created?.includes(p.name)
                 return (
                   <div key={j} className="mt-3 rounded-xl border border-line bg-surface-2/60 p-3">
                     <div className="font-bold flex items-center gap-2">
-                      <Icon name="calendar" size={16} className="text-accent" /> {p.name}
+                      <Icon name="calendar" size={16} className="text-accent-fg" /> {p.name}
                       {p.muscle_group && <span className="text-xs text-muted font-medium">· {p.muscle_group}</span>}
                     </div>
                     <ul className="text-sm mt-1.5 space-y-0.5">
@@ -193,7 +193,7 @@ export function CoachPage() {
                       {done ? 'Angelegt' : 'Als Plan anlegen'}
                     </Button>
                     {done && (
-                      <button className="text-xs text-accent font-semibold mt-1.5 w-full" onClick={() => nav('/plan')}>
+                      <button className="text-xs text-accent-fg font-semibold mt-1.5 w-full" onClick={() => nav('/plan')}>
                         Zu meinen Plänen →
                       </button>
                     )}
@@ -232,7 +232,7 @@ export function CoachPage() {
           placeholder="Nachricht an deinen Coach…"
           className="flex-1 resize-none bg-transparent outline-none px-2 py-2 max-h-32"
         />
-        <button disabled={!input.trim() || busy} className="w-10 h-10 rounded-xl bg-accent text-white grid place-items-center disabled:opacity-40">
+        <button disabled={!input.trim() || busy} className="w-10 h-10 rounded-xl bg-accent text-accent-ink grid place-items-center disabled:opacity-40">
           <Icon name="send" size={18} />
         </button>
       </form>
@@ -258,7 +258,7 @@ function Markdown({ text }: { text: string }) {
             <ul key={i} className="space-y-1">
               {lines.map((l, j) => (
                 <li key={j} className="flex gap-2">
-                  <span className="text-accent">•</span>
+                  <span className="text-accent-fg">•</span>
                   <span>{inline(l.replace(/^\s*([-*•]|\d+\.)\s+/, ''))}</span>
                 </li>
               ))}

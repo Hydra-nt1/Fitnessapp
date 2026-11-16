@@ -63,9 +63,9 @@ export function ExerciseDetailPage() {
           <SectionTitle>Nächstes Training</SectionTitle>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl grid place-items-center text-lg ${sugg.trend === 'up' ? 'bg-good/15 text-good' : sugg.trend === 'down' ? 'bg-warn/15 text-warn' : 'accent-soft text-accent'}`}>{sugg.trend === 'up' ? '↑' : sugg.trend === 'down' ? '↓' : '→'}</div>
+              <div className={`w-10 h-10 rounded-xl grid place-items-center text-lg ${sugg.trend === 'up' ? 'bg-good/15 text-good' : sugg.trend === 'down' ? 'bg-warn/15 text-warn' : 'accent-soft text-accent-fg'}`}>{sugg.trend === 'up' ? '↑' : sugg.trend === 'down' ? '↓' : '→'}</div>
               <div className="flex-1">
-                <div className="font-extrabold text-lg tabular">
+                <div className="font-display font-bold text-lg tabular">
                   {fmtKg(sugg.weight)} kg × {sugg.reps}
                 </div>
                 <div className="text-sm text-muted">{sugg.reason}</div>

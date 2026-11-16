@@ -67,7 +67,7 @@ export function WorkoutDetailPage() {
       {groups.map(([name, ss]) => (
         <div key={name}>
           <SectionTitle>
-            <Link to={`/exercises/${encodeURIComponent(name)}`} className="normal-case tracking-normal text-[15px] text-fg hover:text-accent">
+            <Link to={`/exercises/${encodeURIComponent(name)}`} className="normal-case tracking-normal text-[15px] text-fg hover:text-accent-fg">
               {name}
             </Link>
           </SectionTitle>

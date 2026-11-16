@@ -15,7 +15,7 @@ import { Icon } from '../components/icons'
 const TYPE_LABEL: Record<SetType, { short: string; label: string; cls: string }> = {
   warmup: { short: 'W', label: 'Aufwärmen', cls: 'text-warn' },
   normal: { short: '', label: 'Arbeitssatz', cls: '' },
-  drop: { short: 'D', label: 'Dropsatz', cls: 'text-accent' },
+  drop: { short: 'D', label: 'Dropsatz', cls: 'text-accent-fg' },
   failure: { short: 'F', label: 'Bis Versagen', cls: 'text-bad' },
 }
 
@@ -80,8 +80,8 @@ export function WorkoutPage() {
     return (
       <div className="pt-8 text-center">
         <div className="text-sm text-muted font-semibold uppercase tracking-wider">Eingecheckt</div>
-        <h1 className="text-2xl font-extrabold mt-1">{w.name}</h1>
-        <div className="text-6xl font-extrabold tabular my-8">{fmtClock(Date.now() - w.startedAt)}</div>
+        <h1 className="text-2xl font-display font-bold mt-1">{w.name}</h1>
+        <div className="font-display text-[84px] leading-none font-bold tabular my-10 text-accent-fg">{fmtClock(Date.now() - w.startedAt)}</div>
         <div className="flex flex-col gap-2 max-w-xs mx-auto">
           <Button size="lg" icon="check" onClick={() => setFinishOpen(true)}>
             Training beenden
@@ -134,7 +134,7 @@ export function WorkoutPage() {
       <header className="sticky top-0 z-20 -mx-4 md:-mx-8 px-4 md:px-8 py-3 bg-bg/90 backdrop-blur-xl border-b border-line flex items-center gap-2 safe-top">
         <div className="flex-1 min-w-0">
           <input
-            className="bg-transparent font-extrabold text-lg w-full outline-none truncate"
+            className="bg-transparent font-display font-bold text-[22px] w-full outline-none truncate"
             value={w.name}
             onChange={(e) =>
               updateActive((x) => {
@@ -248,13 +248,13 @@ function ExerciseCard({
   return (
     <Card className={cx('overflow-hidden', linkedPrev && 'rounded-t-md -mt-2.5 border-t-dashed', linkedNext && 'rounded-b-md')}>
       {linkedPrev ? null : ex.supersetGroup && linkedNext ? (
-        <div className="px-4 pt-2.5 -mb-1 text-[11px] font-bold text-accent uppercase tracking-wider flex items-center gap-1">
+        <div className="px-4 pt-2.5 -mb-1 text-[11px] font-bold text-accent-fg uppercase tracking-wider flex items-center gap-1">
           <Icon name="link" size={11} /> Supersatz
         </div>
       ) : null}
       <div className="flex items-start gap-2 p-4 pb-2">
         <div className="flex-1 min-w-0">
-          <Link to={`/exercises/${encodeURIComponent(ex.name)}`} className="font-bold text-[16px] leading-snug hover:text-accent">
+          <Link to={`/exercises/${encodeURIComponent(ex.name)}`} className="font-display font-bold text-[18px] leading-snug hover:text-accent-fg">
             <span className="inline-block w-2 h-2 rounded-full mr-1.5 -translate-y-0.5" style={{ background: groupColor(info.group) }} />
             {ex.name}
           </Link>
@@ -290,7 +290,7 @@ function ExerciseCard({
       )}
 
       <div className="px-2 pb-2">
-        <div className="grid grid-cols-[36px_1fr_1fr_1fr_44px] gap-1.5 px-2 text-[10.5px] font-bold text-muted uppercase tracking-wider">
+        <div className="grid grid-cols-[36px_1fr_1fr_1fr_46px] gap-1.5 px-2 text-[10.5px] font-bold text-muted uppercase tracking-wider">
           <span className="text-center">Satz</span>
           <span className="text-center">kg</span>
           <span className="text-center">Wdh.</span>
@@ -302,8 +302,8 @@ function ExerciseCard({
           const est = st.weight && st.reps ? e1rm(st.weight, st.reps) : 0
           const isPR = st.done && st.type !== 'warmup' && best > 0 && est > best + 0.01
           return (
-            <div key={st.id} className={cx('grid grid-cols-[36px_1fr_1fr_1fr_44px] gap-1.5 items-center px-2 py-1 rounded-xl transition', st.done && 'bg-good/10')}>
-              <button onClick={() => setTypeFor(si)} className={cx('h-9 rounded-lg font-extrabold text-sm', TYPE_LABEL[st.type].cls || 'text-muted', 'hover:bg-surface-2')}>
+            <div key={st.id} className={cx('grid grid-cols-[36px_1fr_1fr_1fr_46px] gap-1.5 items-center px-2 py-1 rounded-2xl transition', st.done && 'bg-accent/10')}>
+              <button onClick={() => setTypeFor(si)} className={cx('h-10 rounded-full font-display font-bold text-[15px]', TYPE_LABEL[st.type].cls || 'text-muted', 'hover:bg-surface-2')}>
                 {label}
               </button>
               <SetInput value={st.weight} decimals onChange={(v) => setVal(si, { weight: v })} done={st.done} />
@@ -311,7 +311,7 @@ function ExerciseCard({
               <select
                 value={st.rpe ?? ''}
                 onChange={(e) => setVal(si, { rpe: e.target.value ? Number(e.target.value) : null })}
-                className={cx('h-9 rounded-lg text-center font-semibold text-sm bg-surface-2 border border-transparent appearance-none outline-none focus:border-accent', !st.rpe && 'text-muted/60', st.done && 'bg-transparent')}
+                className={cx('h-10 rounded-xl text-center font-semibold text-sm bg-surface-2 border border-transparent appearance-none outline-none focus:border-accent', !st.rpe && 'text-muted/60', st.done && 'bg-transparent')}
               >
                 <option value="">–</option>
                 {[6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10].map((r) => (
@@ -320,7 +320,7 @@ function ExerciseCard({
                   </option>
                 ))}
               </select>
-              <button onClick={() => onToggle(si)} className={cx('h-9 rounded-lg grid place-items-center transition active:scale-90 relative', st.done ? 'bg-good text-white' : 'bg-surface-2 text-muted hover:text-fg')}>
+              <button onClick={() => onToggle(si)} className={cx('h-10 rounded-full grid place-items-center transition active:scale-90 relative', st.done ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted hover:text-fg')}>
                 <Icon name="check" size={18} strokeWidth={3} />
                 {isPR && <span className="absolute -top-1.5 -right-1.5 text-[10px]">🏆</span>}
               </button>
@@ -358,7 +358,7 @@ function ExerciseCard({
               onClick={() => (typeFor != null && setVal(typeFor, { type: t }), setTypeFor(null))}
               className={cx('flex items-center gap-3 p-3 rounded-xl border text-left', typeFor != null && ex.sets[typeFor]?.type === t ? 'border-accent accent-soft' : 'border-line')}
             >
-              <span className={cx('w-8 text-center font-extrabold', TYPE_LABEL[t].cls)}>{TYPE_LABEL[t].short || '1'}</span>
+              <span className={cx('w-8 text-center font-display font-bold', TYPE_LABEL[t].cls)}>{TYPE_LABEL[t].short || '1'}</span>
               <span className="font-semibold">{TYPE_LABEL[t].label}</span>
             </button>
           ))}
@@ -459,7 +459,7 @@ function SetInput({ value, onChange, decimals, done }: { value: number; onChange
   return (
     <input
       inputMode={decimals ? 'decimal' : 'numeric'}
-      className={cx('h-9 w-full min-w-0 rounded-lg text-center font-bold tabular outline-none border border-transparent focus:border-accent', done ? 'bg-transparent' : 'bg-surface-2')}
+      className={cx('h-10 w-full min-w-0 rounded-xl text-center font-display font-bold text-[17px] tabular outline-none border border-transparent focus:border-accent', done ? 'bg-transparent' : 'bg-surface-2')}
       value={txt}
       onFocus={(e) => e.target.select()}
       onChange={(e) => {
@@ -493,14 +493,14 @@ function PlateSheet({ kg, bar, onClose }: { kg: number | null; bar: number; onCl
   return (
     <Sheet open={kg != null} onClose={onClose} title="Scheibenrechner">
       <div className="flex items-center gap-2 mb-4">
-        <input className={inputCls + ' text-center text-xl font-extrabold'} inputMode="decimal" value={target} onChange={(e) => setTarget(Number(e.target.value.replace(',', '.')) || 0)} />
+        <input className={inputCls + ' text-center text-xl font-display font-bold'} inputMode="decimal" value={target} onChange={(e) => setTarget(Number(e.target.value.replace(',', '.')) || 0)} />
         <span className="text-muted font-semibold">kg</span>
       </div>
       <div className="text-sm text-muted text-center mb-3">Pro Seite bei {bar} kg Stange:</div>
       <div className="flex items-center justify-center h-28 gap-[3px]">
         <div className="h-3 w-12 bg-surface-3 rounded-l" />
         {plates.map((p, i) => (
-          <div key={i} className="rounded-sm grid place-items-center text-[10px] font-extrabold text-black/70" style={{ background: colors[p], width: p >= 10 ? 18 : 12, height: 40 + p * 2.6 }}>
+          <div key={i} className="rounded-sm grid place-items-center text-[10px] font-display font-bold text-black/70" style={{ background: colors[p], width: p >= 10 ? 18 : 12, height: 40 + p * 2.6 }}>
             <span className="-rotate-90">{fmtKg(p)}</span>
           </div>
         ))}
@@ -545,23 +545,23 @@ function Summary({ prs, volume, sets, duration, name, onClose }: { prs: PR[]; vo
   return (
     <div className="pt-10 text-center anim-pop">
       <div className="text-6xl mb-3">{prs.length ? '🏆' : '💪'}</div>
-      <h1 className="text-3xl font-extrabold">Stark gemacht!</h1>
+      <h1 className="font-display text-[44px] leading-none font-bold">Stark gemacht!</h1>
       <div className="text-muted mt-1">
         {name} · Training Nr. {workouts.length}
       </div>
       <div className={cx('grid gap-2 mt-7 mx-auto', sets ? 'grid-cols-3 max-w-md' : 'grid-cols-1 max-w-[160px]')}>
         <Card className="p-3">
-          <div className="text-xl font-extrabold tabular">{fmtClock(duration * 1000)}</div>
+          <div className="font-display text-2xl font-bold tabular">{fmtClock(duration * 1000)}</div>
           <div className="text-xs text-muted">Dauer</div>
         </Card>
         {sets > 0 && (
           <>
         <Card className="p-3">
-          <div className="text-xl font-extrabold tabular">{sets}</div>
+          <div className="font-display text-2xl font-bold tabular">{sets}</div>
           <div className="text-xs text-muted">Sätze</div>
         </Card>
         <Card className="p-3">
-          <div className="text-xl font-extrabold tabular">{fmtVolume(volume)}</div>
+          <div className="font-display text-2xl font-bold tabular">{fmtVolume(volume)}</div>
           <div className="text-xs text-muted">Volumen</div>
         </Card>
           </>

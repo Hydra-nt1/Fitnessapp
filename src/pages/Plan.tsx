@@ -81,11 +81,12 @@ export function PlanPage() {
           const rs = idsFor(i).map((id) => routines.find((r) => r.id === id)).filter((r): r is Routine => !!r)
           return (
             <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
-              <div className={cx('w-10 text-sm font-bold', i === today ? 'text-accent' : 'text-muted')}>{d.short}</div>
+              <div className={cx('w-10 text-sm font-bold', i === today ? 'text-accent-fg' : 'text-muted')}>{d.short}</div>
               <div className="flex-1 flex flex-wrap gap-1.5 min-w-0">
                 {rs.length ? (
                   rs.map((r) => (
-                    <button key={r.id} onClick={() => nav(`/plan/${r.id}`)} className="h-7 px-2.5 rounded-lg text-[13px] font-semibold text-white truncate max-w-full" style={{ background: groupColor(r.muscle_group) }}>
+                    <button key={r.id} onClick={() => nav(`/plan/${r.id}`)} className="h-8 px-3 rounded-full text-[13px] font-semibold truncate max-w-full inline-flex items-center gap-1.5" style={{ background: `color-mix(in srgb, ${groupColor(r.muscle_group)} 16%, transparent)`, color: `color-mix(in srgb, ${groupColor(r.muscle_group)} 80%, var(--text))` }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: groupColor(r.muscle_group) }} />
                       {r.name}
                     </button>
                   ))
@@ -149,7 +150,7 @@ export function PlanPage() {
               <button key={r.id} onClick={() => assignDay != null && toggle(assignDay, r.id)} className={cx('flex items-center gap-3 p-3 rounded-xl border text-left transition', on ? 'border-accent accent-soft' : 'border-line bg-surface-2/50')}>
                 <span className="w-3 h-3 rounded-full" style={{ background: groupColor(r.muscle_group) }} />
                 <span className="flex-1 font-semibold">{r.name}</span>
-                <span className={cx('w-6 h-6 rounded-lg border-2 grid place-items-center', on ? 'bg-accent border-accent text-white' : 'border-line')}>{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
+                <span className={cx('w-6 h-6 rounded-lg border-2 grid place-items-center', on ? 'bg-accent border-accent text-accent-ink' : 'border-line')}>{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
               </button>
             )
           })}

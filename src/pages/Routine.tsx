@@ -82,8 +82,8 @@ export function RoutinePage() {
         <Button icon="play" size="lg" className="flex-1" onClick={start} disabled={!list.length}>
           Workout starten
         </Button>
-        <Button variant="secondary" size="lg" icon="edit" onClick={() => setQuickOpen(true)} disabled={!list.length}>
-          Schnell-Log
+        <Button variant="secondary" size="lg" icon="edit" onClick={() => setQuickOpen(true)} disabled={!list.length} className="px-5" title="Schnell-Log">
+          <span className="hidden sm:inline">Schnell-Log</span>
         </Button>
       </div>
 
@@ -142,7 +142,7 @@ export function RoutinePage() {
               </Card>
               {i < list.length - 1 && (
                 <div className="flex justify-center -my-1 relative z-10">
-                  <button onClick={() => toggleSuperset(i)} className={`h-6 px-2.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${linkedNext ? 'bg-accent text-white border-accent' : 'bg-surface border-line text-muted opacity-60 hover:opacity-100'}`}>
+                  <button onClick={() => toggleSuperset(i)} className={`h-6 px-2.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${linkedNext ? 'bg-accent text-accent-ink border-accent' : 'bg-surface border-line text-muted opacity-60 hover:opacity-100'}`}>
                     <Icon name="link" size={11} /> {linkedNext ? 'Supersatz' : 'verbinden'}
                   </button>
                 </div>
@@ -219,7 +219,7 @@ function EditExerciseSheet({ ex, onClose }: { ex: RoutineExercise | null; onClos
       <Field label="Notiz (Sitzhöhe, Griff, Einstellung …)">
         <textarea className={inputCls + ' h-20 py-2.5 resize-none'} value={d.note ?? ''} onChange={(e) => set({ note: e.target.value })} placeholder="z. B. Sitz Position 3, enger Griff" />
       </Field>
-      <Link to={`/exercises/${encodeURIComponent(d.exercise_name)}`} className="text-sm text-accent font-semibold inline-flex items-center gap-1">
+      <Link to={`/exercises/${encodeURIComponent(d.exercise_name)}`} className="text-sm text-accent-fg font-semibold inline-flex items-center gap-1">
         Verlauf & Details ansehen <Icon name="arrowRight" size={14} />
       </Link>
     </Sheet>

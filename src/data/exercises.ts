@@ -34,11 +34,11 @@ export const GROUPS = [
 export const PLAN_GROUPS = ['Brust', 'Rücken', 'Schultern', 'Arme', 'Beine', 'Core', 'Ganzkörper', 'Push', 'Pull', 'Oberkörper', 'Unterkörper', 'Cardio']
 
 export const GROUP_COLOR: Record<string, string> = {
-  Brust: '#ef4444', Rücken: '#3b82f6', Schultern: '#f59e0b', Bizeps: '#8b5cf6', Trizeps: '#a855f7', Arme: '#8b5cf6',
-  Unterarme: '#a78bfa', Beine: '#22c55e', 'Beine — Quadrizeps': '#22c55e', 'Beine — Hamstrings & Gesäß': '#16a34a',
+  Brust: '#ff6b6b', Rücken: '#5b9cff', Schultern: '#ffb547', Bizeps: '#8b5cf6', Trizeps: '#a855f7', Arme: '#8b5cf6',
+  Unterarme: '#a78bfa', Beine: '#3ddc84', 'Beine — Quadrizeps': '#22c55e', 'Beine — Hamstrings & Gesäß': '#16a34a',
   Waden: '#4ade80', Core: '#14b8a6', 'Bauch & Core': '#14b8a6', Ganzkörper: '#f97316', 'Ganzkörper & Compound': '#f97316',
-  Cardio: '#ec4899', 'Cardio & Kondition': '#ec4899', 'Dehnen & Mobility': '#64748b', Push: '#ef4444', Pull: '#3b82f6',
-  Oberkörper: '#6366f1', Unterkörper: '#22c55e',
+  Cardio: '#ec4899', 'Cardio & Kondition': '#ec4899', 'Dehnen & Mobility': '#64748b', Push: '#ff6b6b', Pull: '#5b9cff',
+  Oberkörper: '#6366f1', Unterkörper: '#3ddc84',
 }
 export const groupColor = (g?: string | null) => (g && GROUP_COLOR[g]) || '#64748b'
 

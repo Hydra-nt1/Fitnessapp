@@ -77,7 +77,7 @@ export function ExercisePicker({ open, onClose, onPick, multi, title = 'Übung h
         </div>
       </div>
       {q.trim() && !exact && (
-        <button onClick={createCustom} className="w-full flex items-center gap-3 p-3 rounded-xl accent-soft text-accent font-semibold text-sm mb-1">
+        <button onClick={createCustom} className="w-full flex items-center gap-3 p-3 rounded-xl accent-soft text-accent-fg font-semibold text-sm mb-1">
           <Icon name="plus" size={18} /> „{q.trim()}“ als eigene Übung anlegen{group ? ` (${group})` : ''}
         </button>
       )}
@@ -87,7 +87,7 @@ export function ExercisePicker({ open, onClose, onPick, multi, title = 'Übung h
           const used = usage.get(e.name)
           const disabled = ex.has(e.name)
           return (
-            <button key={e.name} disabled={disabled} onClick={() => pick(e.name)} className={cx('w-full flex items-center gap-3 py-2.5 text-left disabled:opacity-35', on && 'text-accent')}>
+            <button key={e.name} disabled={disabled} onClick={() => pick(e.name)} className={cx('w-full flex items-center gap-3 py-2.5 text-left disabled:opacity-35', on && 'text-accent-fg')}>
               <span className="w-1.5 h-9 rounded-full shrink-0" style={{ background: groupColor(e.group) }} />
               <span className="flex-1 min-w-0">
                 <span className="block text-[15px] font-semibold truncate">{e.name}</span>
@@ -98,7 +98,7 @@ export function ExercisePicker({ open, onClose, onPick, multi, title = 'Übung h
                 </span>
               </span>
               {multi && (
-                <span className={cx('w-6 h-6 rounded-lg border-2 grid place-items-center shrink-0', on ? 'bg-accent border-accent text-white' : 'border-line')}>{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
+                <span className={cx('w-6 h-6 rounded-lg border-2 grid place-items-center shrink-0', on ? 'bg-accent border-accent text-accent-ink' : 'border-line')}>{on && <Icon name="check" size={14} strokeWidth={3} />}</span>
               )}
             </button>
           )

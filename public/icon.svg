@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0b0d12"/><g fill="none" stroke="#4f7ef8" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"><path d="M96 300h78l38-92 62 168 44-112 26 36h72"/></g><g fill="#4f7ef8"><rect x="112" y="150" width="36" height="88" rx="10"/><rect x="364" y="150" width="36" height="88" rx="10"/><rect x="148" y="182" width="216" height="24" rx="8" opacity=".55"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="78%" cy="12%" r="95%">
+      <stop offset="0" stop-color="#2a3310"/>
+      <stop offset=".45" stop-color="#121310"/>
+      <stop offset="1" stop-color="#08080a"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6ff7a"/>
+      <stop offset="1" stop-color="#c8ff2e"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eaff8f"/>
+      <stop offset="1" stop-color="#c8ff2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  
+  <g transform="translate(512 512) scale(1) translate(-512 -512)">
+    <circle cx="512" cy="512" r="318" fill="none" stroke="#ffffff" stroke-opacity=".07" stroke-width="84"/>
+    <circle cx="512" cy="512" r="318" fill="none" stroke="url(#ring)" stroke-width="84" stroke-linecap="round"
+      stroke-dasharray="1560 2000" transform="rotate(118 512 512)"/>
+    <g transform="translate(512 512) scale(.8) translate(-512 -512)">
+      <path d="M566 236 L360 548 L494 548 L452 788 L664 468 L528 468 L590 236 Z" fill="url(#bolt)" stroke="#c8ff2e" stroke-width="18" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

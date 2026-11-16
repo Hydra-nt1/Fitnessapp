@@ -8,7 +8,7 @@ import { LineChart } from '../components/charts'
 import { Button, Card, Field, IconButton, NumberStepper, PageHeader, SectionTitle, Segmented, Sheet, Stat, cx, inputCls, toast, useConfirm } from '../components/ui'
 import { Icon } from '../components/icons'
 
-const ACCENTS = ['#4f7ef8', '#8b5cf6', '#22c55e', '#14b8a6', '#f97316', '#ec4899', '#ef4444', '#eab308']
+const ACCENTS = ['#c8ff2e', '#ff6a3d', '#5ad1ff', '#6e8bff', '#a78bfa', '#3ee6b0', '#ff5c8a', '#ffd23f']
 const GOALS = ['Muskelaufbau', 'Kraft', 'Abnehmen', 'Ausdauer', 'Fitness & Gesundheit']
 const LEVELS = ['Anfänger', 'Fortgeschritten', 'Profi']
 const EQUIP = ['Fitnessstudio', 'Home Gym', 'Nur Kurzhanteln', 'Körpergewicht']
@@ -86,7 +86,7 @@ export function ProfilePage() {
       <PageHeader title="Profil" subtitle={isDemo() ? 'Demo-Modus' : email ?? ''} />
 
       <Card className="p-4 flex items-center gap-4" onClick={() => setEditProfile(true)}>
-        <div className="w-14 h-14 rounded-2xl bg-accent text-white grid place-items-center text-2xl font-extrabold">{(s.display_name ?? email ?? '?')[0]?.toUpperCase()}</div>
+        <div className="w-14 h-14 rounded-2xl bg-accent text-accent-ink grid place-items-center text-2xl font-display font-bold">{(s.display_name ?? email ?? '?')[0]?.toUpperCase()}</div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-lg truncate">{s.display_name || 'Name eintragen'}</div>
           <div className="text-sm text-muted truncate">{[s.goal, s.level, s.days_per_week && `${s.days_per_week}× / Woche`, age && `${age} J.`].filter(Boolean).join(' · ') || 'Ziel, Level & mehr festlegen'}</div>
@@ -103,7 +103,7 @@ export function ProfilePage() {
       <Card className="p-4 mt-2.5">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3 -mx-1 px-1">
           {MEASURES.map((m) => (
-            <button key={m.key} onClick={() => setMeasure(m.key)} className={cx('h-7 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap', measure === m.key ? 'bg-accent text-white' : 'bg-surface-2 text-muted')}>
+            <button key={m.key} onClick={() => setMeasure(m.key)} className={cx('h-7 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap', measure === m.key ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted')}>
               {m.label}
             </button>
           ))}
@@ -196,7 +196,7 @@ function ProfileSheet({ open, onClose, s }: { open: boolean; onClose: () => void
   const pick = (k: keyof AppSettings, opts: string[]) => (
     <div className="flex flex-wrap gap-1.5">
       {opts.map((o) => (
-        <button key={o} onClick={() => setD({ ...d, [k]: d[k] === o ? null : o })} className={cx('h-8 px-3 rounded-lg text-[13px] font-semibold border', d[k] === o ? 'bg-accent border-accent text-white' : 'border-line bg-surface-2 text-muted')}>
+        <button key={o} onClick={() => setD({ ...d, [k]: d[k] === o ? null : o })} className={cx('h-8 px-3 rounded-lg text-[13px] font-semibold border', d[k] === o ? 'bg-accent border-accent text-accent-ink' : 'border-line bg-surface-2 text-muted')}>
           {o}
         </button>
       ))}
@@ -249,7 +249,7 @@ function ProfileSheet({ open, onClose, s }: { open: boolean; onClose: () => void
       <Field label="Trainingstage pro Woche">
         <div className="flex gap-1.5">
           {[1, 2, 3, 4, 5, 6, 7].map((x) => (
-            <button key={x} onClick={() => setD({ ...d, days_per_week: x })} className={cx('flex-1 h-9 rounded-lg font-bold', d.days_per_week === x ? 'bg-accent text-white' : 'bg-surface-2 text-muted')}>
+            <button key={x} onClick={() => setD({ ...d, days_per_week: x })} className={cx('flex-1 h-9 rounded-lg font-bold', d.days_per_week === x ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted')}>
               {x}
             </button>
           ))}

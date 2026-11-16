@@ -32,11 +32,16 @@ export function AuthScreen({ onDemo }: { onDemo: () => void }) {
   return (
     <div className="min-h-dvh grid place-items-center px-5 py-10" style={{ background: 'radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%)' }}>
       <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-2 scale-125">
+        <div className="anim-rise">
           <Logo />
+          <h1 className="font-display text-[46px] leading-[0.95] font-bold mt-8">
+            Stärker.
+            <br />
+            <span className="text-accent-fg">Jede Woche.</span>
+          </h1>
+          <p className="text-muted text-[15px] mt-3 mb-8">Plane, logge und analysiere dein Training – mit smarter Progression und KI-Coach.</p>
         </div>
-        <p className="text-center text-muted text-sm mt-4 mb-7">Plane, logge und analysiere dein Training.</p>
-        <div className="bg-surface border border-line rounded-3xl p-5 shadow-2xl">
+        <div className="bg-surface border border-line rounded-[30px] p-5 shadow-2xl anim-rise" style={{ animationDelay: '80ms' }}>
           <Segmented
             options={[
               { value: 'login', label: 'Anmelden' },
@@ -60,7 +65,7 @@ export function AuthScreen({ onDemo }: { onDemo: () => void }) {
             </button>
           )}
         </div>
-        <button onClick={onDemo} className="w-full text-center text-sm text-muted hover:text-accent mt-5">
+        <button onClick={onDemo} className="w-full text-center text-sm text-muted hover:text-accent-fg mt-5">
           Ohne Konto ausprobieren (Demo) →
         </button>
       </div>

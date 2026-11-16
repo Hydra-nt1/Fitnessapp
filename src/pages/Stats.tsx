@@ -100,7 +100,7 @@ export function StatsPage() {
           <div className="flex items-center gap-2 mt-2.5 text-sm text-muted">
             <span>Wochenziel:</span>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => saveSettings({ streak_threshold: n })} className={cx('w-8 h-8 rounded-lg font-bold', n === s.streak_threshold ? 'bg-accent text-white' : 'bg-surface-2 hover:text-fg')}>
+              <button key={n} onClick={() => saveSettings({ streak_threshold: n })} className={cx('w-8 h-8 rounded-lg font-bold', n === s.streak_threshold ? 'bg-accent text-accent-ink' : 'bg-surface-2 hover:text-fg')}>
                 {n}
               </button>
             ))}
@@ -220,7 +220,7 @@ function RecordsTab() {
             </div>
           </div>
           <div className="text-right">
-            <div className="font-extrabold tabular">{fmtKg(x.r.maxWeight)} kg</div>
+            <div className="font-display font-bold tabular">{fmtKg(x.r.maxWeight)} kg</div>
             {x.r.maxE1rm > 0 && <div className="text-xs text-muted tabular">1RM ≈ {fmtKg(Math.round(x.r.maxE1rm))}</div>}
           </div>
         </Link>
@@ -247,7 +247,7 @@ function HistoryTab() {
             {header && <SectionTitle>{header}</SectionTitle>}
             <Link to={`/stats/workout/${w.id}`} className="flex items-center gap-3 p-3.5 mb-2 bg-surface border border-line rounded-2xl hover:border-surface-3">
               <div className="w-11 text-center">
-                <div className="text-lg font-extrabold leading-none">{new Date(w.started_at).getDate()}</div>
+                <div className="text-lg font-display font-bold leading-none">{new Date(w.started_at).getDate()}</div>
                 <div className="text-[11px] text-muted uppercase">{new Date(w.started_at).toLocaleDateString('de-DE', { weekday: 'short' })}</div>
               </div>
               <div className="flex-1 min-w-0">

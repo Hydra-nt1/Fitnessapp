@@ -78,11 +78,12 @@ export function BodyMap({
   const [sel, setSel] = useState<Muscle | null>(null)
   const colorOf = (m: Muscle) => {
     const v = values[m]
-    if (v == null || v <= 0) return mode === 'recovery' ? 'color-mix(in srgb, var(--good) 55%, var(--surface-3))' : 'var(--surface-2)'
+    if (v == null || v <= 0) return mode === 'recovery' ? 'color-mix(in srgb, var(--accent) 22%, var(--surface-3))' : 'var(--surface-2)'
     if (mode === 'recovery') {
-      // 0 = erschöpft (rot) … 1 = erholt (grün)
-      const c = v < 0.5 ? 'var(--bad)' : v < 0.85 ? 'var(--warn)' : 'var(--good)'
-      return `color-mix(in srgb, ${c} 75%, var(--surface-3))`
+      // 0 = erschöpft (warm/rot) … 1 = erholt (zartes Volt)
+      if (v >= 0.85) return 'color-mix(in srgb, var(--accent) 30%, var(--surface-3))'
+      const c = v < 0.5 ? 'var(--bad)' : 'var(--warn)'
+      return `color-mix(in srgb, ${c} 62%, var(--surface-3))`
     }
     if (mode === 'volume') {
       const c = v > 1 ? 'var(--bad)' : v >= 0.999 ? 'var(--good)' : 'var(--accent)'
