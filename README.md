@@ -28,8 +28,8 @@ Die alte Tabelle `profiles` (v1-Backup) bleibt unverändert. Beim ersten Login �
 2. **Edge Functions → Secrets:** `GROQ_API_KEY` setzen (kostenloser Key auf console.groq.com).
 
 ### 3. Deployment
-Push auf `main` → GitHub Action baut und veröffentlicht auf GitHub Pages
-(Repo → Settings → Pages → Source: **GitHub Actions**).
+`npm run deploy` baut die App und veröffentlicht `dist/` auf dem Branch `gh-pages`
+(Repo → Settings → Pages → Source: Branch **gh-pages**, Ordner `/`).
 
 ## Entwicklung
 
