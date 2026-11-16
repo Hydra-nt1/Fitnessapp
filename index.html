@@ -1,219 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0d0d12">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>FitTracker</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-<div id="offline-banner" style="display:none">Offline — Daten werden lokal gespeichert</div>
-<div id="app">
-
-  <!-- Sidebar (Desktop) -->
-  <aside id="sidebar">
-    <div class="logo">
-      <svg viewBox="0 0 160 48" xmlns="http://www.w3.org/2000/svg" style="width:160px;height:48px;display:block">
-        <text x="0" y="24" font-size="22" font-weight="800" font-family="system-ui,sans-serif" fill="currentColor">Fit</text>
-        <text x="33" y="24" font-size="22" font-weight="800" font-family="system-ui,sans-serif" fill="#4f7ef8">Tracker</text>
-        <polyline points="0,40 18,40 24,29 34,46 42,34 52,40 118,40" stroke="#4f7ef8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-    </div>
-    <nav id="sidebar-nav">
-      <button class="nav-item active" data-page="heute">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-        Heute
-      </button>
-      <button class="nav-item" data-page="wochenplan">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          <line x1="8" y1="15" x2="8.01" y2="15" stroke-width="3"/><line x1="12" y1="15" x2="12.01" y2="15" stroke-width="3"/>
-          <line x1="16" y1="15" x2="16.01" y2="15" stroke-width="3"/>
-        </svg>
-        Wochenplan
-      </button>
-      <button class="nav-item" data-page="verlauf">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        Statistik
-      </button>
-      <button class="nav-item" data-page="uebungen">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-          <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-        </svg>
-        Übungen
-      </button>
-      <button class="nav-item" data-page="coach">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        Coach
-      </button>
-      <button class="nav-item" data-page="suche">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Suche
-      </button>
-      <button class="nav-item" data-page="profil">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        Profil
-      </button>
-    </nav>
-    <div class="sidebar-bottom">
-      <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="applyTheme(localStorage.getItem('fittracker_theme')==='light'?'dark':'light');updateThemeToggle()" title="Design wechseln">
-        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <span id="theme-toggle-label">Light Mode</span>
-      </button>
-    </div>
-  </aside>
-
-  <!-- Main Content -->
-  <div id="content-wrap">
-    <div id="content">
-      <div id="content-inner">
-        <div style="text-align:center;padding:80px;color:var(--muted)">Lade…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Nav (Mobile) -->
-  <div id="bottom-nav">
-    <nav id="bottom-nav-nav">
-      <button class="nav-item active" data-page="heute">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-        Heute
-      </button>
-      <button class="nav-item" data-page="wochenplan">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-        Plan
-      </button>
-      <button class="nav-item" data-page="verlauf">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        Statistik
-      </button>
-      <button class="nav-item" data-page="uebungen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-          <line x1="8" y1="18" x2="21" y2="18"/>
-        </svg>
-        Übungen
-      </button>
-      <button class="nav-item" data-page="coach">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        Coach
-      </button>
-      <button class="nav-item" data-page="suche">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span>Suche</span>
-      </button>
-      <button class="nav-item" data-page="profil">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        Profil
-      </button>
-    </nav>
-  </div>
-
-  <!-- Rest Timer Sheet -->
-  <div id="rest-sheet">
-    <div class="rest-label">Pause</div>
-    <div class="rest-countdown" id="rest-countdown">90</div>
-    <div class="rest-progress"><div class="rest-progress-bar" id="rest-progress-bar" style="width:100%"></div></div>
-    <div class="rest-controls">
-      <button class="rest-adjust-btn" onclick="adjustRest(-15)">-15s</button>
-      <button class="rest-dismiss-btn" onclick="dismissRest()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      <button class="rest-adjust-btn" onclick="adjustRest(15)">+15s</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- Auth Overlay -->
-<div id="auth-overlay">
-  <div id="auth-box">
-    <div id="auth-logo">
-      <svg viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" style="width:200px;height:56px;display:block;margin:0 auto">
-        <text x="24" y="28" font-size="28" font-weight="800" font-family="system-ui,sans-serif" fill="currentColor">Fit</text>
-        <text x="66" y="28" font-size="28" font-weight="800" font-family="system-ui,sans-serif" fill="#4f7ef8">Tracker</text>
-        <polyline points="24,48 44,48 52,34 64,54 74,40 86,48 176,48" stroke="#4f7ef8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-    </div>
-    <div id="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="authShowTab('login')">Anmelden</button>
-      <button class="auth-tab" id="tab-signup" onclick="authShowTab('signup')">Registrieren</button>
-    </div>
-    <div id="auth-form">
-      <input id="auth-email" type="email" placeholder="E-Mail" autocomplete="email" class="auth-input" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
-      <input id="auth-password" type="password" placeholder="Passwort" autocomplete="current-password" class="auth-input" onkeydown="if(event.key==='Enter')authSubmit()">
-      <div id="auth-error"></div>
-      <button id="auth-submit-btn" class="auth-btn" onclick="authSubmit()">Anmelden</button>
-      <button id="auth-forgot-btn" class="auth-link" onclick="authForgot()">Passwort vergessen?</button>
-    </div>
-  </div>
-</div>
-
-<script src="js/db.js"></script>
-<script src="js/app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
-
-  // Global ripple effect
-  document.addEventListener('pointerdown', function(e) {
-    var el = e.target.closest('.btn, .pill, .nav-item, .card, .tag-ex-result, .exercise-list-row, .auth-btn, .rest-adjust-btn, .rest-dismiss-btn, .btn-icon');
-    if (!el) return;
-    el.classList.add('ripple-host');
-    var rect = el.getBoundingClientRect();
-    var size = Math.max(rect.width, rect.height);
-    var x = e.clientX - rect.left - size / 2;
-    var y = e.clientY - rect.top - size / 2;
-    var circle = document.createElement('span');
-    circle.className = 'ripple-circle';
-    circle.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + x + 'px;top:' + y + 'px';
-    el.appendChild(circle);
-    setTimeout(function() { circle.remove(); }, 600);
-  }, { passive: true });
-
-  // Offline indicator
-  var offlineBanner = document.getElementById('offline-banner');
-  function updateOnlineStatus() {
-    offlineBanner.style.display = navigator.onLine ? 'none' : 'block';
-  }
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
-  updateOnlineStatus();
-</script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" href="/Fitnessapp/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/Fitnessapp/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>FitTracker</title>
+    <script>
+      try {
+        var t = localStorage.getItem('ft_theme') || 'dark';
+        document.documentElement.dataset.theme = t;
+        var a = localStorage.getItem('ft_accent');
+        if (a) document.documentElement.style.setProperty('--accent', a);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
